@@ -1,0 +1,1876 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Curva TnT">
+<meta name="theme-color" content="#FAF9F7">
+<script data-iphone="sentinella">
+(function(){
+var h=document.documentElement, msg="";
+function ha(c){ return (" "+h.className+" ").indexOf(" "+c+" ")>=0; }
+// L'errore puo' arrivare prima che l'avviso esista — uno script in <head> che
+// non si lascia leggere —: il messaggio si tiene da parte e si scrive quando
+// la pagina c'e'.
+function scrivi(){
+  var e=document.getElementById("nmerr");
+  if(e&&msg) e.textContent="Errore del motore: "+msg;
+}
+function ko(m){
+  if(m&&!msg) msg=m;
+  if(!ha("motore-ko")) h.className+=" motore-ko";
+  scrivi();
+}
+h.className+=" js";
+window.onerror=function(m,src,riga,col){
+  m=String(m);
+  if(/^Script error\.?$/.test(m)) m="il browser non ne mostra il dettaglio (\u00abScript error.\u00bb)";
+  ko(m+(riga?" (riga "+riga+(col?", colonna "+col:"")+")":""));
+};
+document.addEventListener("DOMContentLoaded",function(){
+  if(!ha("motore-ok")) ko(msg||"il motore non ha completato l'avvio"); else scrivi();
+});
+})();
+</script>
+<title>Curva della hs-cTnT — andamento, contesto ed ECG</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bg:#FAF9F7; --surface:#FFFFFF; --surface-alt:#F3F2EF;
+    --border:rgba(11,11,11,0.10); --border-strong:rgba(11,11,11,0.18);
+    --text-primary:#0B0B0B; --text-secondary:#52514E; --text-muted:#76746F;
+    --accent-blue:#2A78D6;   --accent-blue-bg:#E6F1FB;   --accent-blue-border:#B5D4F4;
+    --accent-amber:#BA7517;  --accent-amber-bg:#FAEEDA;  --accent-amber-border:#FAC775;
+    --accent-red:#A32D2D;    --accent-red-bg:#FCEBEB;    --accent-red-border:#F7C1C1;
+    --accent-green:#3B6D11;  --accent-green-bg:#EAF3DE;  --accent-green-border:#C0DD97;
+    --cor-1:#3B8E5A; --cor-2a:#E0A82E; --cor-2b:#DE7E3C; --cor-3:#B33A3A;
+    /* il colore e' il rischio: verde nessun danno o rule-out, ambra stabile o
+       osservazione, arancio probabile, rosso danno acuto, rule-in o occlusione,
+       blu in sospeso */
+    --k0:#2E7D4F; --k0-bg:#E2F3E8; --k0-bd:#A6D9B8;
+    --k1:#8A6A00; --k1-bg:#FBF3C8; --k1-bd:#EBD56C;
+    --k2:#A32D2D; --k2-bg:#FCE3E3; --k2-bd:#F0A9A9;
+    --k3:#B45309; --k3-bg:#FDEBD8; --k3-bd:#F4BD85;
+    --k9:#2A78D6; --k9-bg:#E3EFFB; --k9-bd:#A9CBF1;
+    --grid:rgba(42,120,214,.08);
+    --font:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --display:'IBM Plex Sans Condensed','Arial Narrow',-apple-system,'Segoe UI',sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,'Courier New',monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#111418; --surface:#181C22; --surface-alt:#20252D;
+      --border:rgba(255,255,255,.10); --border-strong:rgba(255,255,255,.19);
+      --text-primary:#E7EAEE; --text-secondary:#B8BEC7; --text-muted:#949BA5;
+      --accent-blue:#72AAEE;   --accent-blue-bg:#18283A;   --accent-blue-border:#2E4B6C;
+      --accent-amber:#E3A94F;  --accent-amber-bg:#30250F;  --accent-amber-border:#5D4719;
+      --accent-red:#EF8E8E;    --accent-red-bg:#361B1B;    --accent-red-border:#6B3232;
+      --accent-green:#95C873;  --accent-green-bg:#1C2A13;  --accent-green-border:#3C5626;
+      --k0:#8FD3A8; --k0-bg:#132B1D; --k0-bd:#2D5A3E;
+      --k1:#EDD36A; --k1-bg:#2C260C; --k1-bd:#5E5120;
+      --k2:#F29A9A; --k2-bg:#361B1B; --k2-bd:#6B3232;
+      --k3:#F3B27A; --k3-bg:#33210F; --k3-bd:#6B4524;
+      --k9:#8EC0F5; --k9-bg:#16283C; --k9-bd:#2F5378;
+      --grid:rgba(114,170,238,.07);
+      color-scheme:dark;
+    }
+  }
+  body { font-family:var(--font); background:var(--bg); color:var(--text-primary); font-size:14.5px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .page { max-width:920px; margin:0 auto; padding:0 16px 4rem; }
+  strong, b { font-weight:600; }
+  .muted { color:var(--text-muted); }
+
+  .hero { margin:0 -16px 0; padding:2.2rem 16px 1.3rem; border-bottom:1px solid var(--border);
+          background-color:var(--bg);
+          background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+          background-size:22px 22px; }
+  .kicker { font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-blue); margin-bottom:8px; }
+  .headline { font-family:var(--display); font-size:30px; font-weight:700; line-height:1.12; margin-bottom:10px; }
+  .lede { font-size:14.5px; color:var(--text-secondary); max-width:740px; margin-bottom:12px; }
+  .lede strong { color:var(--text-primary); }
+  .meta-row { display:flex; flex-wrap:wrap; gap:6px 8px; font-size:12px; }
+  .meta-chip { background:var(--surface); border:1px solid var(--border-strong); border-radius:99px; padding:2px 10px; color:var(--text-secondary); overflow-wrap:anywhere; }
+  .meta-chip strong { color:var(--text-primary); }
+
+  .bar { position:-webkit-sticky; position:-webkit-sticky;position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border-strong);
+         margin:0 -16px 1.2rem; padding:8px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+  .bar .lbl { font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); }
+  .bar .sp { flex:1 1 auto; }
+  .btn { font:600 12.5px var(--font); padding:6px 13px; border-radius:99px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-secondary); cursor:pointer; }
+  .btn:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+  .btn.pri { background:var(--accent-blue); border-color:var(--accent-blue); color:#FFFFFF; }
+
+  .stage { display:flex; align-items:baseline; gap:10px; margin:2rem 0 .7rem; padding-bottom:6px; border-bottom:2px solid var(--border-strong); }
+  .stage-n { font-family:var(--mono); font-size:12px; font-weight:600; color:#FFFFFF; background:var(--accent-blue); border-radius:6px; padding:1px 7px; }
+  .stage-t { font-family:var(--display); font-size:20px; font-weight:700; line-height:1.2; }
+  .stage-w { margin-left:auto; font-size:11.5px; color:var(--text-muted); text-align:right; }
+  .card { background:var(--surface); border:1px solid var(--border-strong); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  .card h3 { font-size:13px; font-weight:600; letter-spacing:.02em; margin-bottom:8px; color:var(--text-secondary); }
+  .row { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:10px; }
+  .row:last-child { margin-bottom:0; }
+  .fl { font-size:12.5px; font-weight:600; color:var(--text-secondary); min-width:150px; }
+  input[type=number], input[type=text], input[type=datetime-local], select { font:500 15px var(--font); color:var(--text-primary); background:var(--surface); border:1px solid var(--border-strong); border-radius:8px; padding:6px 9px; }
+  input[type=number] { width:110px; text-align:center; }
+  input.dt { width:212px; }
+  select { max-width:100%; }
+  .unit { font-size:12.5px; color:var(--text-muted); }
+  .seg { display:inline-flex; flex-wrap:wrap; border:1px solid var(--border-strong); border-radius:10px; overflow:hidden; }
+  .seg label { position:relative; cursor:pointer; }
+  .seg input { position:absolute; opacity:0; width:1px; height:1px; }
+  .seg span { display:block; padding:6px 13px; font-size:13.5px; font-weight:500; color:var(--text-secondary); border-right:1px solid var(--border); }
+  .seg label:last-child span { border-right:none; }
+  .seg input:checked + span { background:var(--text-primary); color:var(--bg); }
+  .seg input:focus-visible + span { outline:2px solid var(--accent-blue); outline-offset:-2px; }
+  .chk { display:flex; align-items:flex-start; gap:9px; padding:6px 0; font-size:14px; line-height:1.45; border-bottom:1px dashed var(--border); cursor:pointer; }
+  .chk:last-child { border-bottom:none; }
+  .chk input { margin-top:3px; width:17px; height:17px; flex:0 0 auto; accent-color:var(--accent-blue); }
+  .chk small { display:block; color:var(--text-muted); font-size:12px; }
+  .hide { display:none !important; }
+
+  .esito { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; }
+  .big { font-family:var(--display); font-size:30px; font-weight:700; line-height:1.08; }
+  .cat { display:inline-block; font-size:13px; font-weight:600; border-radius:99px; padding:3px 11px; border:1px solid; }
+  .k0 { color:var(--k0); background:var(--k0-bg); border-color:var(--k0-bd); }
+  .k1 { color:var(--k1); background:var(--k1-bg); border-color:var(--k1-bd); }
+  .k2 { color:var(--k2); background:var(--k2-bg); border-color:var(--k2-bd); }
+  .k3 { color:var(--k3); background:var(--k3-bg); border-color:var(--k3-bd); }
+  .k9 { color:var(--k9); background:var(--k9-bg); border-color:var(--k9-bd); }
+  .kx { color:var(--text-muted); background:var(--surface-alt); border-color:var(--border-strong); }
+  .src { font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-top:8px; }
+  .why { font-size:13px; color:var(--text-secondary); }
+  .nota { border-left:3px solid var(--accent-amber); background:var(--accent-amber-bg); border-radius:0 8px 8px 0; padding:8px 12px; margin-top:10px; font-size:13.5px; }
+  .nota.info { border-left-color:var(--accent-blue); background:var(--accent-blue-bg); }
+  .nota.stop { border-left-color:var(--accent-red); background:var(--accent-red-bg); }
+  .nota strong { color:var(--text-primary); }
+  .scala { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .scala span { font-size:12px; font-weight:600; border-radius:6px; padding:2px 9px; border:1px solid var(--border-strong); color:var(--text-muted); background:var(--surface-alt); }
+  .scala span.on { outline:2px solid var(--text-primary); outline-offset:1px; }
+  .scala span.k0 { color:var(--k0); background:var(--k0-bg); border-color:var(--k0-bd); }
+  .scala span.k1 { color:var(--k1); background:var(--k1-bg); border-color:var(--k1-bd); }
+  .scala span.k2 { color:var(--k2); background:var(--k2-bg); border-color:var(--k2-bd); }
+  .scala span.k3 { color:var(--k3); background:var(--k3-bg); border-color:var(--k3-bd); }
+
+  /* i prelievi */
+  .prow { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:8px 0; border-bottom:1px dashed var(--border); }
+  .prow:last-child { border-bottom:none; }
+  .pn { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--text-muted); min-width:58px; }
+  .pqs { display:flex; flex-wrap:wrap; gap:4px; }
+  .pq { font:600 11.5px var(--mono); padding:3px 8px; border-radius:99px; border:1px solid var(--border-strong); background:var(--surface-alt); color:var(--text-secondary); cursor:pointer; }
+  .pq:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+  .tb-wrap { overflow-x:auto; margin-top:8px; }
+  table.tb { border-collapse:collapse; font-size:12.5px; width:100%; min-width:600px; }
+  table.tb th { font-size:11px; font-weight:600; color:var(--text-muted); text-align:right; padding:4px 7px; border-bottom:1px solid var(--border-strong); line-height:1.3; }
+  table.tb td { font-family:var(--mono); text-align:right; padding:5px 7px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  table.tb th:first-child, table.tb td:first-child { text-align:left; }
+  table.tb td.su { color:var(--k2); font-weight:600; }
+
+  /* il grafico */
+  .chart { margin-top:4px; }
+  .chart svg { display:block; width:100%; height:auto; }
+  .chart .ax { stroke:var(--border-strong); stroke-width:1; }
+  .chart .gl { stroke:var(--border); stroke-width:1; }
+  .chart .tk { font-family:var(--mono); font-size:10.5px; fill:var(--text-muted); }
+  .chart .tt { font-family:var(--font); font-size:11px; fill:var(--text-muted); }
+  .chart .bandA { fill:var(--k9-bg); }
+  .chart .bandB { fill:var(--surface-alt); }
+  .chart .bandC { fill:var(--k1-bg); }
+  .chart .bl { font-family:var(--mono); font-size:10.5px; font-weight:600; fill:var(--text-secondary); }
+  .chart .lnu { stroke:var(--accent-red); stroke-width:1.5; stroke-dasharray:6 4; }
+  .chart .lnul { font-family:var(--mono); font-size:10.5px; font-weight:600; fill:var(--accent-red); }
+  .chart .lne { stroke:var(--accent-amber); stroke-width:1.2; stroke-dasharray:2 4; }
+  .chart .lnel { font-family:var(--mono); font-size:10px; fill:var(--accent-amber); }
+  .chart .crv { stroke:var(--text-secondary); stroke-width:2; fill:none; }
+  .chart .crvp { stroke:var(--text-muted); stroke-width:1.5; fill:none; stroke-dasharray:3 3; }
+  .chart .pth { fill:var(--k2); stroke:var(--surface); stroke-width:2; }
+  .chart .ptl { fill:var(--k0); stroke:var(--surface); stroke-width:2; }
+  .chart .ptp { fill:var(--surface); stroke:var(--text-muted); stroke-width:2; }
+  .chart .vl { font-family:var(--mono); font-size:11.5px; font-weight:600; fill:var(--text-primary); }
+  .chart .vl, .chart .lnul, .chart .lnel, .chart .bl { paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round; }
+
+  /* le 12 derivazioni */
+  .modi { margin-bottom:10px; }
+  .grid-ld { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); grid-gap:6px; gap:6px; max-width:460px; }
+  .grid-ld.x { grid-template-columns:repeat(4, minmax(0, 1fr)); margin-top:6px; }
+  .ld { font:600 14px var(--mono); padding:7px 3px 5px; border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); color:var(--text-primary); cursor:pointer; min-height:52px; text-align:center; }
+  .ld .bd { display:block; font-size:11px; min-height:16px; letter-spacing:.02em; color:var(--text-secondary); }
+  .ld.su { border-color:var(--k2-bd); background:var(--k2-bg); }
+  .ld.giu { border-color:var(--k9-bd); background:var(--k9-bg); }
+  .ld.tneg { border-color:var(--k1-bd); background:var(--k1-bg); }
+  .ld.q { border-color:var(--k3-bd); background:var(--k3-bg); }
+  .ld.su .bd { color:var(--k2); }
+  .soglie-ecg { font-size:12.5px; color:var(--text-secondary); margin-top:8px; }
+
+  .passo { display:flex; gap:10px; padding:9px 0; border-bottom:1px dashed var(--border); }
+  .passo:last-child { border-bottom:none; }
+  .passo .ico { flex:0 0 22px; font-weight:700; color:var(--accent-blue); text-align:center; }
+  .passo .tx { flex:1 1 auto; font-size:14px; }
+  .cor { display:inline-block; font-family:var(--mono); font-size:11px; font-weight:600; color:#FFFFFF; border-radius:4px; padding:0 5px; margin:0 2px; white-space:nowrap; vertical-align:1px; }
+  .c1 { background:var(--cor-1); }
+  .pg { font-family:var(--mono); font-size:11px; color:var(--text-muted); white-space:nowrap; }
+  .integr { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--accent-amber); border:1px solid var(--accent-amber-border); background:var(--accent-amber-bg); border-radius:4px; padding:0 4px; white-space:nowrap; }
+  .lettura { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--accent-blue); border:1px solid var(--accent-blue-border); background:var(--accent-blue-bg); border-radius:4px; padding:0 4px; white-space:nowrap; }
+  textarea.txt { display:block; width:100%; min-height:220px; font:12.5px/1.55 var(--mono); color:var(--text-primary); background:var(--surface-alt); border:1px solid var(--border-strong); border-radius:8px; padding:10px 12px; resize:vertical; }
+  @media (max-width:640px) {
+    .headline { font-size:25px; }
+    .stage-w { display:none; }
+    .fl { min-width:0; width:100%; }
+    .big { font-size:26px; }
+    .pn { min-width:0; width:100%; }
+    .pg { white-space:normal; }
+  }
+  .limiti li { margin:4px 0 4px 18px; font-size:13.5px; }
+  .foot { margin-top:2.4rem; padding-top:1rem; border-top:1px solid var(--border-strong); font-size:12px; color:var(--text-muted); line-height:1.7; }
+  .foot strong { color:var(--text-secondary); }
+  @media print { .bar { position:static; } .pqs, .modi, #copia { display:none; } }
+</style>
+<style data-iphone="stile">
+/* L'avviso e' visibile per costruzione: lo nasconde solo la classe che la
+   sentinella mette quando JavaScript esiste, e lo rimostra quando il motore
+   muore. Nell'anteprima dell'iPhone nessuna delle due arriva. */
+#nomotore{background:#FCEBEB;border:1.5px solid #A32D2D;border-radius:10px;
+ padding:12px 15px;margin:0 0 1.1rem;font-size:13.5px;line-height:1.6;color:#0B0B0B;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+#nomotore strong{display:block;color:#A32D2D;font-size:15px;margin-bottom:4px}
+#nomotore p{margin:6px 0 0}
+#nomotore a{color:#A32D2D}
+#nomotore .nmurl{font-family:'SFMono-Regular',Consolas,Menlo,monospace;font-size:.92em;word-break:break-all}
+#nomotore .nmerr{display:block;font-family:'SFMono-Regular',Consolas,Menlo,monospace;
+ font-size:11.5px;color:#A32D2D;margin-top:6px;word-break:break-word}
+#nomotore .nmerr:empty{display:none}
+html.js #nomotore{display:none}
+html.js.motore-ko #nomotore{display:block}
+
+#nmprivacy{background:#E2F4F5;border:1px solid #A7DBDE;border-radius:8px;padding:9px 13px;
+ margin:0 0 1rem;font-size:12.5px;line-height:1.55;color:#0B0B0B;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+@media print{#nmprivacy{display:none}}
+</style>
+</head>
+<body>
+<div class="nomotore" id="nomotore" role="alert">
+ <strong>Motore di calcolo non attivo</strong>
+ <p>I calcoli, i filtri e i comandi di questa pagina <b>non funzionano</b>: dove leggi «—» non c'è un
+ valore. Il testo resta leggibile, i numeri che dipendono dai tuoi dati no. Non usare questa pagina
+ per decidere una dose.</p>
+ <p>Su iPhone e iPad succede sempre con un file salvato sul telefono: si apre nell'<b>anteprima</b> —
+ dall'app File, da Mail, da WhatsApp —, che mostra la pagina ma non esegue il motore, e Apple non
+ permette di aprirlo in Safari. Sull'iPhone il tool funziona aperto da questo indirizzo, in Safari: <a class="nmurl" href="https://francescofugetto-ai.github.io/tool-curva-tnt-web/">https://francescofugetto-ai.github.io/tool-curva-tnt-web/</a> — poi Condividi, «Aggiungi alla schermata Home». Dopo la prima apertura funziona anche senza rete. Su computer e Android basta aprire il file.</p>
+ <span class="nmerr" id="nmerr"></span>
+</div>
+<div class="nmprivacy" id="nmprivacy">
+ <b>Quello che scrivi resta su questo dispositivo.</b> La pagina non invia niente in rete e non
+ salva niente: nessun dato esce da qui. Per la stessa ragione, <b>chiudendola il contenuto si
+ perde</b> — copia il referto dove ti serve prima di chiudere.
+</div>
+<div class="page">
+
+<header class="hero">
+  <div class="kicker">Strumento · Infarto miocardico · Quinta UDMI 2026 · ESC 2023</div>
+  <h1 class="headline">La curva della troponina T ad alta sensibilità — che cosa dice l'andamento, in questo contesto</h1>
+  <p class="lede"><strong>Come si usa.</strong> Il passo 1 fissa il <strong>paziente</strong> e il <strong>contesto</strong> — esordio spontaneo, un'altra condizione acuta, una procedura cardiaca —, il 2 la clinica, il 3 l'<strong>ECG</strong>: tocchi le derivazioni alterate e spunti i reperti di occlusione. Il passo 4 prende i <strong>prelievi con data e ora</strong>, li disegna e calcola intervalli e Δ. Poi il tool legge la curva tre volte: con l'<strong>algoritmo ESC</strong>, quando si applica (5), con la <strong>definizione</strong> di danno miocardico (6), e con i criteri dell'<strong>infarto</strong> per il contesto scelto (8), dopo angiografia e imaging se ci sono (7). Il passo 9 scrive il <strong>testo per la consulenza</strong>. <strong>Azzera</strong>, in alto, ricomincia da capo.</p>
+  <div class="meta-row">
+    <span class="meta-chip"><strong>Definizione</strong> Fifth Universal Definition of Myocardial Infarction (2026) · Box 1–6, § 13, § 14, § 16</span>
+    <span class="meta-chip"><strong>Algoritmo</strong> 2023 ESC Guidelines for the management of acute coronary syndromes · Fig. 6, p. 3741</span>
+    <span class="meta-chip"><strong>Soglie</strong> ESC 2023, Supplementary data, Tab. S4, p. 12 · hs-cTnT Elecsys (Roche)</span>
+  </div>
+</header>
+
+<div class="bar" id="bar" aria-live="polite">
+  <span class="lbl">Curva</span> <span id="barCurva" class="cat kx">—</span>
+  <span class="lbl">ECG</span> <span id="barEcg" class="cat kx">—</span>
+  <span class="lbl">Infarto</span> <span id="barCat" class="cat kx">—</span>
+  <span class="sp"></span>
+  <button class="btn" id="azzera" type="button">Azzera</button>
+</div>
+
+<!-- ═══ PASSO 1 ═══ -->
+<div class="stage"><span class="stage-n">1</span><span class="stage-t">Il paziente e il contesto</span><span class="stage-w">p. 10 · Box 3, 4, 5 · § 14.1.1</span></div>
+
+<div class="card">
+  <div class="row">
+    <span class="fl">Sesso</span>
+    <span class="seg">
+      <label><input type="radio" name="sesso" value="f"><span>Donna</span></label>
+      <label><input type="radio" name="sesso" value="m"><span>Uomo</span></label>
+    </span>
+  </div>
+  <div class="row">
+    <label class="fl" for="eta">Età</label>
+    <input type="number" id="eta" min="18" max="110" step="1" inputmode="numeric"> <span class="unit">anni</span>
+  </div>
+  <div class="row">
+    <label class="fl" for="url">99° percentile (URL) hs-cTnT</label>
+    <input type="number" id="url" min="0" step="any" inputmode="decimal"> <span class="unit">ng/L</span>
+    <span class="muted" id="urlNota" style="font-size:12.5px"></span>
+  </div>
+  <p class="why">Il danno miocardico si definisce col 99° percentile <strong>per sesso</strong>: per la hs-cTnT quello delle donne è circa la metà di quello degli uomini. <span class="pg">UDMI5 pp. 8, 24</span></p>
+</div>
+
+<div class="card">
+  <h3>In che contesto sale la troponina?</h3>
+  <div class="row">
+    <span class="seg" id="segCtx">
+      <label><input type="radio" name="ctx" value="spont"><span>Esordio spontaneo</span></label>
+      <label><input type="radio" name="ctx" value="sec"><span>Altra condizione acuta</span></label>
+      <label><input type="radio" name="ctx" value="proc"><span>Dopo una procedura cardiaca</span></label>
+    </span>
+  </div>
+  <p class="why" id="ctxWhy">Spontaneo: nessuna condizione acuta né procedura ha scatenato il quadro (IM <strong>primario</strong>, Box 3). Altra condizione acuta: squilibrio fra apporto e domanda di ossigeno (IM <strong>secondario</strong>, Box 4). Procedura: complicanza entro 30 giorni (IM <strong>procedura-correlato</strong>, Box 5). <span class="pg">pp. 10–16</span></p>
+
+  <div id="blkSec" class="hide" style="margin-top:10px">
+    <h3>La condizione acuta</h3>
+    <label class="chk"><input type="checkbox" class="cond" id="sTachi" data-n="tachiaritmia"><span>Tachiaritmia<small>la causa più comune di squilibrio, p. 15</small></span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sBradi" data-n="bradiaritmia"><span>Bradiaritmia</span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sIpot" data-n="ipotensione o shock"><span>Ipotensione o shock</span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sIpox" data-n="ipossiemia"><span>Ipossiemia</span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sAnemia" data-n="anemia"><span>Anemia</span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sIpert" data-n="ipertensione severa"><span>Ipertensione severa</span></label>
+    <label class="chk"><input type="checkbox" class="cond" id="sAltro" data-n="altra condizione acuta"><span>Altra condizione acuta<small>sepsi, sanguinamento, insufficienza respiratoria…</small></span></label>
+    <p class="src">Domanda aumentata (tachicardia, ipertensione severa) o apporto ridotto (ipotensione, ipossia, anemia) · Fig. 4 nota a, p. 14 · nessuna soglia di gravità, p. 15</p>
+  </div>
+
+  <div id="blkProc" class="hide" style="margin-top:10px">
+    <h3>La procedura</h3>
+    <div class="row">
+      <label class="fl" for="ptipo">Procedura</label>
+      <select id="ptipo">
+        <option value="">—</option>
+        <option value="pci">coronarografia o PCI</option>
+        <option value="strutt">intervento strutturale percutaneo (TAVI, M-TEER, chiusure)</option>
+        <option value="abl">ablazione transcatetere</option>
+        <option value="chir">cardiochirurgia (CABG, valvole, altro)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label class="fl" for="tProc">Fine della procedura</label>
+      <input type="datetime-local" class="dt" id="tProc">
+    </div>
+    <label class="chk"><input type="checkbox" id="pSosp"><span><strong>Complicanza coronarica sospetta</strong><small>il Box 5 parte da qui: dopo una procedura un certo danno acuto c'è sempre, p. 17</small></span></label>
+    <label class="chk"><input type="checkbox" id="pDurante"><span>Complicanza insorta <strong>durante</strong> la procedura, o procedura eseguita <strong>in corso di IM acuto</strong><small>allora servono entrambe le prove, angiografia e imaging · Box 5, p. 16</small></span></label>
+    <label class="chk"><input type="checkbox" id="pNonCorr"><span>Evento <strong>indipendente</strong> dalla procedura<small>si classifica come primario o secondario, p. 19</small></span></label>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Situazioni speciali</h3>
+  <label class="chk"><input type="checkbox" id="xReinf"><span>Infarto nell'ultimo mese: sospetto <strong>reinfarto</strong></span></label>
+  <label class="chk"><input type="checkbox" id="xHF"><span><strong>Scompenso</strong> acuto o cronico</span></label>
+  <label class="chk"><input type="checkbox" id="xCKD"><span><strong>Malattia renale cronica</strong> o dialisi</span></label>
+  <label class="chk"><input type="checkbox" id="xCrit"><span>Paziente <strong>critico</strong></span></label>
+  <label class="chk"><input type="checkbox" id="xNCS"><span>Dopo <strong>chirurgia non cardiaca</strong></span></label>
+  <label class="chk"><input type="checkbox" id="xOnco"><span><strong>Terapia oncologica</strong> (antracicline, inibitori dei checkpoint…)</span></label>
+  <p class="src">Quinta UDMI § 16, pp. 30–34</p>
+</div>
+
+<!-- ═══ PASSO 2 ═══ -->
+<div class="stage"><span class="stage-n">2</span><span class="stage-t">La clinica</span><span class="stage-w">Box 3, 4, 5 · Box 6 · S p. 12</span></div>
+
+<div class="card">
+  <div class="row">
+    <label class="fl" for="tOnset" id="lblOnset">Esordio dei sintomi</label>
+    <input type="datetime-local" class="dt" id="tOnset">
+    <label class="chk" style="border:none;padding:0"><input type="checkbox" id="onsetIgnoto"><span>non noto</span></label>
+  </div>
+  <p class="why">La cinetica si legge dall'<strong>esordio</strong>, non dall'arrivo: decide quanto Δ aspettarsi. <span class="pg">p. 27 · Fig. 10, p. 26</span></p>
+</div>
+
+<div class="card">
+  <h3>Criteri clinici</h3>
+  <label class="chk"><input type="checkbox" id="c1"><span>Sintomi compatibili con <strong>ischemia miocardica acuta</strong><small>dolore o fastidio toracico, o equivalenti: dispnea, palpitazioni, nausea, dolore riferito · «tipico» e «atipico» sono termini sconsigliati, p. 21</small></span></label>
+  <label class="chk" id="rigaC4"><input type="checkbox" id="c4"><span>Deterioramento clinico <strong>improvviso e inspiegato</strong> in sedazione<small>edema polmonare, ipotensione, tachicardia o aritmia ventricolare inattese · Box 5, p. 16</small></span></label>
+  <h3 style="margin-top:12px">Segnali che cambiano che cosa si fa</h3>
+  <label class="chk"><input type="checkbox" id="f2"><span>Dolore <strong>in corso o ricorrente</strong></span></label>
+  <label class="chk"><input type="checkbox" id="f1"><span>Quadro <strong>in crescendo</strong>, o angina instabile evidente</span></label>
+  <label class="chk"><input type="checkbox" id="f3"><span>Sospetto clinico che <strong>resta alto</strong></span></label>
+  <label class="chk"><input type="checkbox" id="stabile"><span>Situazione clinica <strong>stabile</strong> al momento dei prelievi<small>serve per considerare il danno cronico, Box 2</small></span></label>
+  <div id="blkProb" class="hide">
+    <h3 style="margin-top:12px">Che cosa rende probabile l'IM secondario</h3>
+    <label class="chk"><input type="checkbox" id="p1"><span><strong>CAD nota</strong></span></label>
+    <label class="chk"><input type="checkbox" id="p2"><span><strong>Forte sospetto</strong> per l'estensione dell'ischemia all'ECG o dell'aumento della troponina</span></label>
+    <p class="src">Box 4, p. 13</p>
+  </div>
+  <div id="blkP3" class="hide">
+    <h3 style="margin-top:12px">Che cosa rende probabile l'IM procedura-correlato</h3>
+    <label class="chk"><input type="checkbox" id="p3"><span>Biomarcatori <strong>più alti</strong>, saliti dal valore pre-procedura e <strong>ancora in salita</strong> a 6 h dopo un intervento percutaneo o a 24 h dopo chirurgia<small>il passo 6 ti mostra picco, ore e multipli dell'URL · Box 5, p. 16</small></span></label>
+  </div>
+</div>
+
+<div class="card" id="cardGate">
+  <h3>Algoritmo ESC: si può usare? Tutte e tre devono essere vere</h3>
+  <label class="chk"><input type="checkbox" id="g1"><span>Sospetto NSTEMI, <strong>senza indicazione a coronarografia immediata</strong><small>STEMI escluso: il passo 3 lo controlla anche sull'ECG</small></span></label>
+  <label class="chk"><input type="checkbox" id="g2"><span>Escluse le <strong>altre condizioni pericolose per la vita</strong></span></label>
+  <label class="chk"><input type="checkbox" id="g3"><span>Paziente con <strong>sospetta SCA</strong>, non una popolazione di PS non selezionata<small>non si applica, per esempio, all'ictus o alla sepsi</small></span></label>
+  <p class="src">ESC 2023 · Fig. 6, p. 3741 · Suppl. p. 12, avvertenze i–ii</p>
+</div>
+
+<!-- ═══ PASSO 3 ═══ -->
+<div class="stage"><span class="stage-n">3</span><span class="stage-t">L'ECG</span><span class="stage-w">§ 13 · Tab. 5 · Fig. 9 · pp. 21–23</span></div>
+
+<div class="card">
+  <h3>Che cosa rende l'ECG difficile da leggere</h3>
+  <label class="chk"><input type="checkbox" id="eBbsPre"><span><strong>Blocco di branca sinistra</strong> già noto</span></label>
+  <label class="chk"><input type="checkbox" id="eBbsNuovo"><span>Blocco di branca sinistra <strong>nuovo</strong> o presunto nuovo</span></label>
+  <label class="chk"><input type="checkbox" id="eBbdNuovo"><span>Blocco di branca destra <strong>nuovo</strong> o presunto nuovo</span></label>
+  <label class="chk"><input type="checkbox" id="eBbd"><span>Blocco di branca destra già noto</span></label>
+  <label class="chk"><input type="checkbox" id="ePacing"><span>Stimolazione <strong>ventricolare</strong> (pacing)</span></label>
+  <label class="chk"><input type="checkbox" id="eIvs"><span><strong>Ipertrofia ventricolare sinistra</strong></span></label>
+</div>
+
+<div class="card">
+  <h3>Tocca le derivazioni alterate</h3>
+  <div class="row modi">
+    <span class="seg" id="segModo">
+      <label><input type="radio" name="modo" value="su" checked><span>ST↑</span></label>
+      <label><input type="radio" name="modo" value="giu"><span>ST↓</span></label>
+      <label><input type="radio" name="modo" value="tneg"><span>T negativa</span></label>
+      <label><input type="radio" name="modo" value="q"><span>Q patologica</span></label>
+    </span>
+  </div>
+  <div class="grid-ld" id="gridLd">
+    <button type="button" class="ld" data-ld="I">I<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="aVR">aVR<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V1">V1<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V4">V4<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="II">II<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="aVL">aVL<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V2">V2<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V5">V5<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="III">III<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="aVF">aVF<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V3">V3<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V6">V6<span class="bd"></span></button>
+  </div>
+  <label class="chk" style="margin-top:8px"><input type="checkbox" id="eExtra"><span>Derivazioni <strong>aggiuntive</strong>: precordiali destre e posteriori</span></label>
+  <div class="grid-ld x hide" id="gridX">
+    <button type="button" class="ld" data-ld="V3R">V3R<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V4R">V4R<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V5R">V5R<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V6R">V6R<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V7">V7<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V8">V8<span class="bd"></span></button>
+    <button type="button" class="ld" data-ld="V9">V9<span class="bd"></span></button>
+  </div>
+  <div class="soglie-ecg" id="soglieEcg"></div>
+  <p class="src">Soglie: Tab. 5, p. 23 · V7–V9 e V3R–V4R: UDMI4 p. 259 <span class="integr">INTEGRAZIONE</span> · derivazioni contigue: adiacenti nella sequenza aVL, I, −aVR, II, aVF, III e nelle precordiali — AHA/ACCF/HRS 2009 (Wagner), aVR letta a parte</p>
+</div>
+
+<div class="card">
+  <h3>Reperti di occlusione e d'ischemia che lo schema non vede</h3>
+  <label class="chk"><input type="checkbox" id="pdW"><span>Onde T <strong>di de Winter</strong><small>sottoslivellamento ascendente con T alte, simmetriche, in V2–V5</small></span></label>
+  <label class="chk"><input type="checkbox" id="pWel"><span>Sindrome di <strong>Wellens</strong><small>T bifasiche o profondamente negative in V2–V3, a dolore cessato</small></span></label>
+  <label class="chk"><input type="checkbox" id="pAsl"><span>Pattern di <strong>Aslanger</strong><small>ST↑ solo in III, con ST↓ in una fra V4–V6 e T positiva</small></span></label>
+  <label class="chk"><input type="checkbox" id="pPost"><span><strong>ST↓ ≥1 mm in V1–V3</strong>, con R dominante in V1–V2<small>suggerisce un infarto posteriore: si conferma con V7–V9</small></span></label>
+  <label class="chk"><input type="checkbox" id="pIper"><span>Onde T <strong>iperacute</strong> in due derivazioni contigue<small>simmetriche, larghe, sproporzionate al QRS</small></span></label>
+  <label class="chk"><input type="checkbox" id="pBif"><span>Onde T <strong>bifasiche</strong></span></label>
+  <label class="chk"><input type="checkbox" id="pAr"><span><strong>Fibrillazione o tachicardia ventricolare</strong><small>reperto d'ischemia della Tab. 5</small></span></label>
+  <label class="chk"><input type="checkbox" id="pArR"><span>Aritmia ventricolare <strong>refrattaria</strong><small>segno di occlusione della Fig. 9</small></span></label>
+  <div id="blkSg" class="hide">
+    <h3 style="margin-top:12px">Sgarbossa: con blocco di branca sinistra o pacing</h3>
+    <label class="chk"><input type="checkbox" id="sg1"><span>ST↑ ≥1 mm <strong>concordante</strong> con il QRS</span></label>
+    <label class="chk"><input type="checkbox" id="sg2"><span>ST↓ ≥1 mm in V1, V2 o V3</span></label>
+    <label class="chk"><input type="checkbox" id="sg3"><span>ST↑ ≥5 mm <strong>discordante</strong>, o rapporto ST/S ≤ −0,25 (Sgarbossa modificato)<small>la fonte scrive «≤0,25»: il rapporto è negativo perché ST e S vanno in direzioni opposte, come nel criterio originale di Smith (Ann Emerg Med 2012) e nel distillato <span class="integr">INTEGRAZIONE</span></small></span></label>
+  </div>
+  <h3 style="margin-top:12px">Il confronto</h3>
+  <label class="chk"><input type="checkbox" id="eNuovo"><span>Le alterazioni di ST e T sono <strong>nuove</strong> o presunte nuove</span></label>
+  <label class="chk"><input type="checkbox" id="eQnuove"><span>Le onde Q sono <strong>nuove</strong></span></label>
+  <label class="chk"><input type="checkbox" id="eNorm"><span>ECG valutato: <strong>nessuna alterazione ischemica</strong></span></label>
+  <p class="src">Tab. 5, p. 23 · pp. 21–22 · Fig. 9, p. 22</p>
+</div>
+
+<div class="card" id="ecgOut">
+  <div class="esito"><span class="cat kx" id="ecgCat">—</span></div>
+  <div class="why" id="ecgWhy" style="margin-top:6px"></div>
+  <div id="ecgNote"></div>
+</div>
+
+<!-- ═══ PASSO 4 ═══ -->
+<div class="stage"><span class="stage-n">4</span><span class="stage-t">I prelievi</span><span class="stage-w">§ 14.1.3 · Fig. 10 · p. 26</span></div>
+
+<div class="card">
+  <div class="prow hide" id="rowPre">
+    <span class="pn">pre-proc.</span>
+    <input type="datetime-local" class="dt" id="tPre" aria-label="data e ora del prelievo pre-procedura">
+    <input type="number" id="vPre" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT pre-procedura"> <span class="unit">ng/L</span>
+  </div>
+  <div class="prow"><span class="pn">1</span><input type="datetime-local" class="dt" id="t1" aria-label="data e ora del prelievo 1"><input type="number" id="v1" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 1"> <span class="unit">ng/L</span></div>
+  <div class="prow"><span class="pn">2</span><input type="datetime-local" class="dt" id="t2" aria-label="data e ora del prelievo 2"><input type="number" id="v2" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 2"> <span class="unit">ng/L</span><span class="pqs" data-r="2"></span></div>
+  <div class="prow"><span class="pn">3</span><input type="datetime-local" class="dt" id="t3" aria-label="data e ora del prelievo 3"><input type="number" id="v3" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 3"> <span class="unit">ng/L</span><span class="pqs" data-r="3"></span></div>
+  <div class="prow"><span class="pn">4</span><input type="datetime-local" class="dt" id="t4" aria-label="data e ora del prelievo 4"><input type="number" id="v4" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 4"> <span class="unit">ng/L</span><span class="pqs" data-r="4"></span></div>
+  <div class="prow"><span class="pn">5</span><input type="datetime-local" class="dt" id="t5" aria-label="data e ora del prelievo 5"><input type="number" id="v5" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 5"> <span class="unit">ng/L</span><span class="pqs" data-r="5"></span></div>
+  <div class="prow"><span class="pn">6</span><input type="datetime-local" class="dt" id="t6" aria-label="data e ora del prelievo 6"><input type="number" id="v6" min="0" step="any" inputmode="decimal" aria-label="hs-cTnT prelievo 6"> <span class="unit">ng/L</span><span class="pqs" data-r="6"></span></div>
+  <p class="why" style="margin-top:8px">Ora del <strong>prelievo</strong>, non del referto. I pulsanti «+1 h»… mettono l'ora del prelievo precedente più l'intervallo: poi la correggi. <span class="pg">S p. 12, avvertenza v</span></p>
+  <div id="prelNote"></div>
+</div>
+
+<div class="card">
+  <div class="row" style="margin-bottom:4px">
+    <span class="fl">Scala del grafico</span>
+    <span class="seg">
+      <label><input type="radio" name="scala" value="" checked><span>automatica</span></label>
+      <label><input type="radio" name="scala" value="lin"><span>lineare</span></label>
+      <label><input type="radio" name="scala" value="log"><span>logaritmica</span></label>
+    </span>
+  </div>
+  <div class="chart" id="grafico"></div>
+  <div class="tb-wrap" id="tabella"></div>
+  <p class="src">Fasi dall'esordio: A &lt;3 h, variazioni assolute piccole · B 3–12 h, ampie in salita · C 12–24 h, attorno al picco, minime · D–F dopo il picco: discesa ampia, poi un pattern che a giorni dall'esordio mima il danno cronico, e settimane per tornare alla norma · Fig. 10, p. 26 · pp. 25–27</p>
+</div>
+
+<!-- ═══ PASSO 5 ═══ -->
+<div class="stage"><span class="stage-n">5</span><span class="stage-t">L'algoritmo ESC 0 h/1 h e 0 h/2 h</span><span class="stage-w">Fig. 6 · p. 3741 · Tab. S4 · <span class="cor c1">I B</span></span></div>
+
+<div class="card" id="outEsc">
+  <div class="esito">
+    <div class="big" id="escVal">—</div>
+    <div><span class="cat kx" id="escCat">—</span><div class="why" id="escWhy" style="margin-top:4px"></div></div>
+  </div>
+  <div id="escSoglie" class="src"></div>
+  <div id="escNote"></div>
+  <div id="escPassi" style="margin-top:6px"></div>
+</div>
+
+<!-- ═══ PASSO 6 ═══ -->
+<div class="stage"><span class="stage-n">6</span><span class="stage-t">La curva con la definizione</span><span class="stage-w">Box 1, 2, 6 · § 14.1.4 · pp. 8–9, 26–27</span></div>
+
+<div class="card" id="outCurva">
+  <div class="esito">
+    <div class="big" id="curVal">—</div>
+    <div><span class="cat kx" id="curCat">—</span><div class="why" id="curWhy" style="margin-top:4px"></div></div>
+  </div>
+  <label class="chk hide" id="rigaGiud" style="margin-top:8px"><input type="checkbox" id="giudizio"><span><strong>Giudico l'andamento una dinamica vera</strong> (rise and/or fall)<small>dove nessuna soglia decide, decide il giudizio clinico · p. 26</small></span></label>
+  <div id="curNote"></div>
+</div>
+
+<!-- ═══ PASSO 7 ═══ -->
+<div class="stage"><span class="stage-n">7</span><span class="stage-t">Angiografia e imaging</span><span class="stage-w">Box 3, 4, 5 · Fig. 2, 4, 6</span></div>
+
+<div class="card">
+  <div class="row" id="rigaAngio">
+    <label class="fl" for="angio">Angiografia coronarica</label>
+    <select id="angio">
+      <option value="">non eseguita</option>
+      <option value="1">patologia acuta: aterotrombosi</option>
+      <option value="2">patologia acuta: dissezione spontanea (SCAD)</option>
+      <option value="3">patologia acuta: embolia coronarica</option>
+      <option value="4">patologia acuta: vasospasmo</option>
+      <option value="5">restenosi oltre 30 giorni da una procedura</option>
+      <option value="6">trombosi di stent oltre 30 giorni</option>
+      <option value="7">fallimento di graft oltre 30 giorni</option>
+      <option value="ostr">CAD ostruttiva, senza patologia acuta</option>
+      <option value="nonostr">coronarie non ostruttive (nessuna stenosi ≥50%)</option>
+    </select>
+  </div>
+  <div class="row hide" id="rigaCompl">
+    <label class="fl" for="compl">Complicanza all'angiografia</label>
+    <select id="compl">
+      <option value="">non valutata</option>
+      <option value="si">sì: occlusione di un ramo, dissezione, no-reflow, trombosi, graft, ostio…</option>
+      <option value="no">no</option>
+    </select>
+  </div>
+  <div class="row">
+    <label class="fl" for="img">Imaging cardiaco</label>
+    <select id="img">
+      <option value="">non eseguito</option>
+      <option value="si">nuova anomalia della cinetica o miocardio non vitale, in pattern ischemico</option>
+      <option value="no">nessuna delle due</option>
+    </select>
+  </div>
+  <p class="why" id="imgProc"></p>
+  <p class="src">CAD ostruttiva = stenosi ≥70%, o ≥50% che limita il flusso, Box 4 p. 13 · MINOCA = nessuna stenosi ≥50%, p. 21</p>
+</div>
+
+<!-- ═══ PASSO 8 ═══ -->
+<div class="stage"><span class="stage-n">8</span><span class="stage-t">Che infarto è, e che cosa manca</span><span class="stage-w">Box 3, 4, 5 · Fig. 2, 4, 6 · § 16</span></div>
+
+<div class="card" id="outCat">
+  <div class="esito">
+    <div class="big" id="oCat">—</div>
+    <span class="cat kx" id="oLiv">—</span>
+  </div>
+  <div class="scala" id="oScala"></div>
+  <div id="oNote"></div>
+  <div id="oPassi" style="margin-top:6px"></div>
+  <div id="oSpec"></div>
+</div>
+
+<!-- ═══ PASSO 9 ═══ -->
+<div class="stage"><span class="stage-n">9</span><span class="stage-t">Il testo per la consulenza</span></div>
+
+<div class="card">
+  <textarea class="txt" id="txt" readonly aria-label="testo per la consulenza"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button class="btn pri" id="copia" type="button">Copia il testo</button>
+    <span class="muted" id="copiaEsito" style="font-size:12.5px"></span>
+  </div>
+  <p class="why">Contiene solo ciò che hai inserito, e niente che identifichi il paziente. Rileggilo prima di incollarlo.</p>
+</div>
+
+<!-- ═══ LIMITI ═══ -->
+<div class="stage"><span class="stage-n">!</span><span class="stage-t">Limiti, per questo paziente</span></div>
+<div class="card"><ul class="limiti" id="limiti"></ul></div>
+
+<div class="foot">
+  <strong>Fonti.</strong> Mills NL, Newby LK, Zaman S, et al. <em>Fifth Universal Definition of Myocardial Infarction (2026).</em> Eur Heart J 2026: danno acuto e cronico (§ 6, Box 1 e 2, pp. 8–9), classificazione clinica (Box 3, 4, 5 e Fig. 2, 4, 6, pp. 10–17), ECG (§ 13, Tab. 5 e Fig. 9, pp. 21–23), troponina (§ 14.1, Fig. 10 e Box 6, pp. 24–27), situazioni speciali (§ 16, pp. 30–34). Byrne RA, Rossello X, Coughlan JJ, et al. <em>2023 ESC Guidelines for the management of acute coronary syndromes.</em> Eur Heart J 2023;44:3720–3826: Fig. 6 (p. 3741), Recommendation Table 1 (p. 3739), gestione dei tre percorsi (p. 3740); Supplementary data: Tab. S4 e avvertenze (p. 12), finestra del prelievo a 1 h (p. 13), blocchi di branca (p. 7). Thygesen K, Alpert JS, Jaffe AS, et al. <em>Fourth universal definition of myocardial infarction (2018).</em> Eur Heart J 2019;40:237–269: il &gt;20% con il basale sopra l'URL (p. 255), la procedura con basale elevato (p. 250), il reinfarto (p. 252), le soglie in V7–V9 e V3R–V4R (p. 259). Wagner GS, Macfarlane P, Wellens H, et al. <em>AHA/ACCF/HRS Recommendations for the Standardization and Interpretation of the Electrocardiogram, Part VI: Acute Ischemia/Infarction.</em> J Am Coll Cardiol 2009;53:1003–11, doi 10.1016/j.jacc.2008.12.016: derivazioni contigue e regioni. 99° percentile per sesso della hs-cTnT Elecsys dalle tabelle IFCC C-CB (v122019, dichiarato dal produttore), a cui la Quinta UDMI rimanda: <span class="integr">INTEGRAZIONE</span>, e vale il valore del proprio laboratorio. Le <span class="lettura">LETTURA DELLO STRUMENTO</span> sono scelte del medico dove la fonte tace, e sono scritte accanto. Testo riformulato, nessun passo delle fonti riprodotto.<br>
+  <strong>Strumento di studio e di consultazione.</strong> Non è un dispositivo medico validato e non sostituisce il giudizio clinico né la lettura delle linee guida.
+</div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ═══ DATI ═══════════════════════════════════════════════════════════════
+     hs-cTnT Elecsys (Roche) — ESC 2023, Supplementary data, Tab. S4, p. 12,
+     verificate sull'immagine della pagina: [molto basso, basso, nessun delta,
+     alto, delta] in ng/L. Molto basso, basso e nessun delta si leggono «<»,
+     alto e delta «>=». Uguali per eta', sesso e funzione renale. */
+  var S4 = { "1": [5, 12, 3, 52, 5], "2": [5, 14, 4, 52, 10] };
+
+  /* Zona di osservazione, solo hs-cTnT: a 3 h <15 ng/L e variazione 0/3 h
+     <4 ng/L (S p. 12). */
+  var OSS = { c3: 15, d: 4 };
+
+  /* Finestre dei prelievi, in minuti dal primo: 1 h ±10 min (S p. 13).
+     2 h e 3 h ±10 min per analogia: lettura dello strumento, decisa dal
+     medico il 25/10/2026 (la fonte non da' tolleranza). */
+  var FIN = { "1": [50, 70], "2": [110, 130], "3": [170, 190] };
+
+  /* 99° percentile per sesso — INTEGRAZIONE: tabelle IFCC C-CB v122019,
+     dichiarato dal produttore (distillato § 2.3.2); e' anche cio' che referta
+     il laboratorio del medico. */
+  var URL99 = { f: 9, m: 16 };
+
+  /* Primo prelievo sopra l'URL: variazione >20% fra due prelievi, sul primo
+     dei due = dinamica. UDMI4 p. 255 (gruppo di consenso); <=20% = stabile
+     (UDMI4 p. 249, legenda della Fig. 6; UDMI5 p. 9: «meno del 20% fra le
+     misure», solo imprecisione analitica). La Quinta non fissa un valore
+     unico (p. 26): soglia dichiarata, decisa dal medico il 25/10/2026. */
+  var REL = 0.20;
+
+  /* Dopo una procedura «nessun danno» solo con un prelievo ad almeno 12 h
+     dalla fine: picco a 3-12 h dopo chirurgia, a 12-24 h dopo PCI, e con
+     ischemia o complicanza un prelievo a 12-24 h (pp. 25-26). Lettura dello
+     strumento. */
+  var PROC_ORE = 12;
+
+  /* Valori molto alti: la fonte non da' un numero (p. 27). 5 volte l'URL e'
+     lettura nostra, come nel Tool Troponina. */
+  var ALTO = 5;
+
+  var STD = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
+  var EXTRA = ["V3R", "V4R", "V5R", "V6R", "V7", "V8", "V9"];
+  /* Derivazioni contigue: adiacenti nella sequenza aVL, I, -aVR, II, aVF, III
+     e nelle precordiali (AHA/ACCF/HRS 2009, Wagner, JACC 2009;53:1003), piu'
+     II e III, che la UDMI4 mette nello stesso gruppo (II, III, aVF; p. 259).
+     aVR non entra nelle coppie: si legge a parte (UDMI5 pp. 21-23). */
+  var CONTIGUE = [["aVL", "I"], ["II", "aVF"], ["aVF", "III"], ["II", "III"],
+                  ["V1", "V2"], ["V2", "V3"], ["V3", "V4"], ["V4", "V5"], ["V5", "V6"],
+                  ["V3R", "V4R"], ["V4R", "V5R"], ["V5R", "V6R"], ["V7", "V8"], ["V8", "V9"]];
+  /* Regione dalle derivazioni alterate (Wagner 2009 raccomanda di nominare la
+     regione, non le derivazioni): anteriore V1-V4, inferiore II-III-aVF,
+     posteriore V7-V9, ventricolo destro V3R-V6R; laterale per I, aVL, V5, V6. */
+  var REGIONE = { I: "laterale", aVL: "laterale", V5: "laterale", V6: "laterale",
+                  II: "inferiore", III: "inferiore", aVF: "inferiore",
+                  V1: "anteriore", V2: "anteriore", V3: "anteriore", V4: "anteriore",
+                  V3R: "ventricolo destro", V4R: "ventricolo destro", V5R: "ventricolo destro", V6R: "ventricolo destro",
+                  V7: "posteriore", V8: "posteriore", V9: "posteriore" };
+
+  var PERCORSO = ["rule-out", "osservazione", "rule-in"];
+  var PAT = { "1": "aterotrombosi", "2": "dissezione spontanea (SCAD)", "3": "embolia coronarica", "4": "vasospasmo",
+              "5": "restenosi oltre 30 giorni", "6": "trombosi di stent oltre 30 giorni", "7": "fallimento di graft oltre 30 giorni" };
+  var LIV = { escluso: ["escluso", "k0"], considerato: ["considerato", "k1"], probabile: ["probabile", "k3"],
+              confermato: ["confermato", "k2"], nonimf: ["non è infarto", "k9"] };
+  var ORA = 3600000, MIN = 60000, GIORNO = 86400000;
+
+  /* ═══ FUNZIONI PURE ══════════════════════════════════════════════════ */
+  function fmt(v) { return String(Math.round(v * 10) / 10).replace(".", ","); }
+  function segno(v) { return (v > 0 ? "+" : (v < 0 ? "−" : "")) + fmt(Math.abs(v)); }
+  function pc(r) { return (r > 0 ? "+" : (r < 0 ? "−" : "")) + Math.round(Math.abs(r) * 100) + "%"; }
+  function due(n) { return (n < 10 ? "0" : "") + n; }
+  function fmtDT(t) { var d = new Date(t); return due(d.getDate()) + "/" + due(d.getMonth() + 1) + " " + due(d.getHours()) + ":" + due(d.getMinutes()); }
+  function durata(min) {
+    var m = Math.round(min), neg = m < 0; m = Math.abs(m);
+    var g = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60, s;
+    if (g >= 2) s = g + " g " + h + " h";
+    else if (m >= 60) s = Math.floor(m / 60) + " h " + due(mm) + " min";
+    else s = m + " min";
+    return (neg ? "−" : "") + s;
+  }
+  function inFin(m, k) { return m >= FIN[k][0] && m <= FIN[k][1]; }
+
+  /* Data e ora: il valore del campo nativo (aaaa-mm-ggThh:mm) o, dove il
+     browser non ha il campo, «gg/mm/aaaa hh:mm» o «gg/mm hh:mm». */
+  function leggiOra(txt) {
+    if (!txt) return null;
+    var t = String(txt).replace(/^\s+|\s+$/g, ""), m, y, mo, d, h, mi;
+    m = /^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})/.exec(t);
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; h = +m[4]; mi = +m[5]; }
+    else {
+      m = /^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?[ ,]+(\d{1,2})[:.](\d{2})$/.exec(t);
+      if (!m) return null;
+      d = +m[1]; mo = +m[2]; y = m[3] ? (+m[3] < 100 ? 2000 + (+m[3]) : +m[3]) : new Date().getFullYear(); h = +m[4]; mi = +m[5];
+    }
+    var x = new Date(y, mo - 1, d, h, mi);
+    if (x.getFullYear() !== y || x.getMonth() !== mo - 1 || x.getDate() !== d || h > 23 || mi > 59) return null;
+    return x.getTime();
+  }
+
+  /* I prelievi, in ordine di tempo. Il valore pre-procedura conta solo
+     nel contesto della procedura. */
+  function prelievi(s) {
+    var r = { pts: [], pre: null, senzaOra: [], prima: [], doppi: false };
+    var pieni = 0, i;
+    for (i = 0; i < s.righe.length; i++) if (s.righe[i].v !== null) pieni++;
+    for (i = 0; i < s.righe.length; i++) {
+      var x = s.righe[i];
+      if (x.v === null) continue;
+      if (x.t === null && pieni > 1) { r.senzaOra.push(x.n); continue; }
+      r.pts.push({ t: x.t, v: x.v, n: x.n });
+    }
+    r.pts.sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
+    for (i = 1; i < r.pts.length; i++) if (r.pts[i].t === r.pts[i - 1].t) r.doppi = true;
+    if (s.ctx === "proc") {
+      if (s.pre.v !== null) r.pre = { t: s.pre.t, v: s.pre.v, n: "pre" };
+      if (s.tProc !== null) {
+        var post = [];
+        for (i = 0; i < r.pts.length; i++) { if (r.pts[i].t !== null && r.pts[i].t < s.tProc) r.prima.push(r.pts[i].n); else post.push(r.pts[i]); }
+        r.pts = post;
+      }
+    }
+    return r;
+  }
+
+  /* L'esordio rispetto al prelievo 0 h: «oltre» 3 h, «entro», o «ignoto». */
+  function esordio(s, t0) {
+    if (s.onsetIgnoto || s.tOnset === null || t0 === null || t0 < s.tOnset) return "ignoto";
+    return (t0 - s.tOnset) > 3 * ORA ? "oltre" : "entro";
+  }
+  function oreDa(s, t) {
+    if (t === null) return null;
+    if (s.ctx === "proc") return s.tProc === null ? null : (t - s.tProc) / ORA;
+    if (s.onsetIgnoto || s.tOnset === null) return null;
+    return (t - s.tOnset) / ORA;
+  }
+  /* Fase della Fig. 10 dall'esordio (p. 26): A <3 h, B 3-12 h, C 12-24 h,
+     poi D-F, senza confini in ore perche' la fonte non li da'. */
+  function fase(h) {
+    if (h === null) return "";
+    if (h < 0) return "?";
+    if (h < 3) return "A";
+    if (h < 12) return "B";
+    if (h <= 24) return "C";
+    return "D–F";
+  }
+
+  /* L'algoritmo della Fig. 6 (p. 3741) con le soglie Elecsys della Tab. S4. */
+  function algoritmo(s, P, ec) {
+    var r = { p: null, alg: "", perche: "", attesa: "", note: [], delta: null, j: -1, k3: -1, oss: null, applica: false, es: "" };
+    if (!s.ctx) { r.attesa = "scegli il contesto"; return r; }
+    if (s.ctx !== "spont") { r.attesa = "non si applica: fuori dal sospetto di SCA"; return r; }
+    if (ec.stato === "occl") { r.attesa = "non si usa: ECG di occlusione coronarica"; r.stop = true; return r; }
+    if (!(s.g1 && s.g2 && s.g3)) { r.attesa = "conferma le tre condizioni d'uso (passo 2)"; return r; }
+    r.applica = true;
+    var pts = P.pts;
+    if (!pts.length) { r.attesa = "manca il prelievo a 0 h"; return r; }
+    var c0 = pts[0].v, t0 = pts[0].t, T1 = S4["1"], i;
+    r.es = esordio(s, t0);
+    if (c0 >= T1[3]) { r.p = 2; r.alg = "0"; r.perche = "0 h ≥ " + T1[3] + " ng/L: valore iniziale alto"; return r; }
+    /* il secondo prelievo, a 1 h o se manca a 2 h: il suo Δ di rule-in vale
+       anche sopra un valore iniziale molto basso */
+    var i1 = -1, i2 = -1;
+    for (i = 1; i < pts.length; i++) {
+      if (t0 === null || pts[i].t === null) continue;
+      var m = (pts[i].t - t0) / MIN;
+      if (i1 < 0 && inFin(m, "1")) i1 = i;
+      if (i2 < 0 && inFin(m, "2")) i2 = i;
+    }
+    r.j = i1 >= 0 ? i1 : i2;
+    var t = null, lo, nod, d;
+    if (r.j >= 0) {
+      r.alg = i1 >= 0 ? "1" : "2";
+      t = S4[r.alg]; lo = t[1]; nod = t[2]; d = t[4];
+      r.delta = pts[r.j].v - c0;
+      if (r.delta >= d) { r.p = 2; r.perche = "aumento di " + fmt(r.delta) + " ng/L in " + r.alg + " h (≥ " + d + ")"; }
+    }
+    if (r.p === null && c0 < T1[0] && r.es === "oltre") { r.p = 0; r.alg = "0"; r.perche = "0 h < " + T1[0] + " ng/L e dolore da più di 3 h: valore iniziale molto basso"; }
+    else if (r.p === null) {
+      if (c0 < T1[0]) r.note.push("Molto basso, ma con l'esordio " + (r.es === "entro" ? "da 3 h o meno" : "non noto") + ": il rule-out a un solo prelievo vale solo col dolore da più di 3 h.");
+      if (r.j < 0) { r.attesa = pts.length > 1 ? "nessun prelievo a 1 h (50–70 min) né a 2 h (110–130 min) dal primo" : "serve il prelievo a 1 h, fra 50 e 70 min dal primo"; return r; }
+      if (c0 < lo && Math.abs(r.delta) < nod) { r.p = 0; r.perche = "0 h < " + lo + " ng/L e variazione " + segno(r.delta) + " ng/L (< " + nod + "): basso, senza Δ"; }
+      else {
+        r.p = 1;
+        if (r.delta <= -d) { r.perche = "discesa di " + fmt(-r.delta) + " ng/L in " + r.alg + " h"; r.note.push("discesa"); }
+        else if (c0 < lo) r.perche = "0 h basso, ma variazione di " + segno(r.delta) + " ng/L (non < " + nod + ")";
+        else r.perche = "né rule-out né rule-in: 0 h ≥ " + lo + " e < " + t[3] + " ng/L, Δ sotto " + d;
+      }
+    }
+    /* il rule-out non regge se un prelievo successivo supera l'URL o il Δ di
+       rule-in nella sua finestra: incrementi tardivi nell'1% (S p. 12, iv) */
+    if (r.p === 0) {
+      for (i = (r.alg === "0" ? 1 : r.j + 1); i < pts.length; i++) {
+        if (pts[i].t === null || t0 === null) continue;
+        var mm = (pts[i].t - t0) / MIN, dd = pts[i].v - c0;
+        if (s.url !== null && pts[i].v > s.url) { r.ritirato = "il prelievo " + pts[i].n + " supera il 99° percentile (" + fmt(pts[i].v) + " ng/L)"; break; }
+        if (inFin(mm, "1") && dd >= S4["1"][4]) { r.ritirato = "a 1 h l'aumento è di " + fmt(dd) + " ng/L (≥ " + S4["1"][4] + ")"; break; }
+        if (inFin(mm, "2") && dd >= S4["2"][4]) { r.ritirato = "a 2 h l'aumento è di " + fmt(dd) + " ng/L (≥ " + S4["2"][4] + ")"; break; }
+      }
+    }
+    if (r.p === 1) {
+      for (i = r.j + 1; i < pts.length; i++) {
+        if (pts[i].t !== null && inFin((pts[i].t - t0) / MIN, "3")) { r.k3 = i; break; }
+      }
+      if (r.k3 >= 0) { var d3 = Math.abs(pts[r.k3].v - c0); r.oss = { v: pts[r.k3].v, d3: d3, ok: pts[r.k3].v < OSS.c3 && d3 < OSS.d }; }
+    }
+    return r;
+  }
+
+  /* Forma della curva: dove sta il picco, e se l'andamento ha un pattern. */
+  function forma(pts) {
+    var r = { max: null, imax: -1, min: null, andamento: "", zigzag: false };
+    if (!pts.length) return r;
+    for (var i = 0; i < pts.length; i++) {
+      if (r.max === null || pts[i].v > r.max) { r.max = pts[i].v; r.imax = i; }
+      if (r.min === null || pts[i].v < r.min) r.min = pts[i].v;
+    }
+    if (pts.length < 2) return r;
+    var n = pts.length, first = pts[0].v, last = pts[n - 1].v;
+    if (r.imax > 0 && r.imax < n - 1 && r.max > first && r.max > last) r.andamento = "salita e discesa";
+    else if (last > first) r.andamento = "in salita";
+    else if (last < first) r.andamento = "in discesa";
+    else r.andamento = "invariata";
+    /* «senza pattern»: almeno due inversioni di direzione, ognuna oltre il
+       20% sul valore precedente — lettura dello strumento del Box 6 */
+    var segni = [];
+    for (var j = 1; j < n; j++) {
+      var a = pts[j - 1].v, b = pts[j].v;
+      if (a > 0 && Math.abs(b - a) / a > REL) segni.push(b > a ? 1 : -1);
+    }
+    var inv = 0;
+    for (var k = 1; k < segni.length; k++) if (segni[k] !== segni[k - 1]) inv++;
+    r.zigzag = inv >= 2;
+    return r;
+  }
+
+  /* La curva con la definizione: danno acuto (Box 1), cronico (Box 2),
+     assente. Rende tn = "acuto" / "cronico" / "assente" / "" (in sospeso).
+     In acuto la priorita' e' escludere il danno acuto (p. 9): «cronico» e
+     «assente» chiedono una serie che li regga. */
+  function lettura(s, P, alg, ec) {
+    var r = { tn: "", k: null, testo: "", perche: "", note: [], chiedi: false, dinamica: "", base: "", rel: null, sopra: 0, forma: forma(P.pts), alto: null };
+    if (!s.sesso || s.url === null) { r.testo = "servono sesso e 99° percentile"; return r; }
+    var url = s.url, pts = P.pts, n = pts.length, i, j;
+    if (s.ctx === "proc" && s.tProc === null && n) { r.testo = "manca l'ora di fine della procedura"; return r; }
+    if (n === 0) { r.testo = s.ctx === "proc" ? "inserisci i prelievi dopo la procedura" : "inserisci i prelievi"; return r; }
+    for (i = 0; i < n; i++) if (pts[i].v > url) r.sopra++;
+    var max = r.forma.max;
+    if (max !== null && url > 0 && max >= ALTO * url) r.alto = max / url;
+
+    if (s.ctx === "proc") {
+      if (pts[0].t !== null && (pts[0].t - s.tProc) / GIORNO > 30) {
+        r.testo = "oltre 30 giorni dalla procedura: leggi la curva nel contesto spontaneo";
+        r.perche = "il primo prelievo è a " + durata((pts[0].t - s.tProc) / MIN) + " dalla procedura";
+        return r;
+      }
+      return letturaProc(s, P, r, url);
+    }
+
+    var v0 = pts[0].v;
+    var span = (n > 1 && pts[0].t !== null && pts[n - 1].t !== null) ? (pts[n - 1].t - pts[0].t) / MIN : 0;
+    var esc = s.ctx === "spont" && alg.applica;
+    if (r.sopra === 0) {
+      /* nessun valore sopra l'URL: si esclude il danno solo con il rule-out
+         dell'algoritmo, con i criteri a 3 h della zona di osservazione, o con
+         prelievi che coprono almeno 3 h (percorso convenzionale, p. 27) */
+      r.k = 0; r.testo = "nessun valore sopra il 99° percentile";
+      if (ec.stato === "occl") {
+        r.k = 9; r.testo = "nessun valore ancora sopra il 99° percentile";
+        r.perche = "ECG di occlusione: nelle prime ore la troponina può essere ancora normale";
+        r.note.push(["stop", "<strong>Con l'ECG di occlusione la troponina non esclude:</strong> in circa 1 STEMI su 6 è sotto il 99° percentile nelle prime ore, perché il territorio non è perfuso. Per la diagnosi finale il danno acuto serve: la serie prosegue.", "p. 25 · Fig. 2 nota b, p. 11"]);
+        return r;
+      }
+      if (esc && alg.ritirato) { r.k = 9; r.testo = "nessun valore sopra il 99° percentile, ma il rule-out non regge"; r.perche = alg.ritirato; }
+      else if (esc && alg.p === 0) { r.tn = "assente"; r.perche = "rule-out dell'algoritmo ESC: " + alg.perche; }
+      else if (esc && alg.p === 2) {
+        r.k = 9; r.testo = "nessun valore ancora sopra il 99° percentile";
+        r.perche = "l'algoritmo dice rule-in (" + alg.perche + "), ma nessun valore supera l'URL per sesso";
+        r.note.push(["", "<strong>Smistare non è definire.</strong> Il rule-in ha un valore predittivo positivo del 70–75%; il danno miocardico chiede almeno un valore sopra il 99° percentile per sesso. Serve il prelievo successivo.", "p. 3740 · UDMI5 p. 27"]);
+      } else if (esc && alg.p === 1 && alg.oss && alg.oss.ok) { r.tn = "assente"; r.perche = "zona di osservazione: a 3 h " + fmt(alg.oss.v) + " ng/L (< 15) e Δ0/3 h " + fmt(alg.oss.d3) + " (< 4)"; }
+      else if (esc && alg.p === 1 && alg.oss) { r.k = 9; r.testo = "nessun valore sopra il 99° percentile, ma i criteri a 3 h non sono soddisfatti"; r.perche = "a 3 h " + fmt(alg.oss.v) + " ng/L, Δ0/3 h " + fmt(alg.oss.d3) + ": servono < 15 e < 4"; }
+      else if (n >= 2 && span >= FIN["3"][0]) {
+        r.tn = "assente"; r.perche = n + " prelievi, tutti ≤ " + fmt(url) + " ng/L, l'ultimo a " + durata(span) + " dal primo";
+        r.note.push(["info", "È la logica del <strong>percorso convenzionale</strong>: il 99° percentile a 0 e a 3 h, insieme a uno score di rischio clinico.", "p. 27"]);
+      } else {
+        r.k = 9; r.testo = "nessun valore sopra il 99° percentile, finora";
+        r.perche = n === 1 ? "un solo prelievo" : "prelievi entro 3 h dal primo";
+        r.note.push(["", "Un valore sotto il 99° percentile non basta: alla presentazione la sua sensibilità è di circa il 90%, e scende fino al 70% entro 3 h dall'esordio. Serve un prelievo ad <strong>almeno 3 h</strong> dal primo, o il rule-out dell'algoritmo.", "p. 25 · p. 27 · Box 6"]);
+      }
+      /* Box 6: con sintomi persistenti o ricorrenti la serie viene prima */
+      if ((s.f2 || s.f3) && r.tn === "assente" && !(n >= 2 && span >= FIN["3"][0])) {
+        r.tn = ""; r.k = 9; r.testo = "nessun valore sopra il 99° percentile, ma la serie non basta ancora";
+        r.note.push(["stop", "<strong>Dolore in corso o ricorrente, o sospetto che resta alto:</strong> prima di escludere l'infarto servono i prelievi seriati — qui coprono meno di 3 h. Incrementi tardivi si vedono in circa l'1%.", "Box 6, p. 27 · S p. 12, avvertenza iv"]);
+      } else if ((s.f2 || s.f3) && r.tn === "assente") {
+        r.note.push(["info", "Con dolore che recidiva o sospetto che resta alto, una <strong>nuova troponina</strong> anche dopo questa serie.", "S p. 12, avvertenza iv"]);
+      }
+      return r;
+    }
+    if (n === 1) {
+      r.k = 9; r.testo = "sopra il 99° percentile: serve la serie";
+      r.perche = "un solo prelievo, " + fmt(v0) + " ng/L";
+      r.chiedi = r.alto !== null;
+      return giudica(s, r);
+    }
+    /* il Δ assoluto validato, nelle finestre di 1 h e 2 h dal primo */
+    var val = null, fuori = false, sotto = [];
+    for (i = 1; i < n; i++) {
+      if (pts[0].t === null || pts[i].t === null) continue;
+      var m = (pts[i].t - pts[0].t) / MIN, h = inFin(m, "1") ? "1" : (inFin(m, "2") ? "2" : "");
+      var dd = pts[i].v - v0;
+      if (h) { if (Math.abs(dd) >= S4[h][4]) { if (!val) val = { i: i, h: h, d: dd }; } else sotto.push(h); }
+      else if (dd !== 0) fuori = true;
+    }
+    if (v0 <= url) {
+      r.base = "assoluto";
+      if (val) {
+        r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto"; r.dinamica = "validata";
+        r.perche = "primo prelievo ≤ URL; variazione di " + segno(val.d) + " ng/L in " + val.h + " h (≥ " + S4[val.h][4] + ": Δ validato del saggio), con " + (r.sopra === 1 ? "un valore" : r.sopra + " valori") + " sopra il 99° percentile";
+        return r;
+      }
+      r.k = 9; r.chiedi = true;
+      if (fuori) {
+        r.testo = "sopra il 99° percentile: la dinamica la giudichi tu";
+        r.perche = "primo prelievo ≤ URL, poi fino a " + fmt(max) + " ng/L (" + segno(max - v0) + " ng/L)";
+        r.note.push(["", "Con il primo prelievo sotto o attorno all'URL conta il <strong>Δ assoluto</strong>, che è proprio del saggio. Per la hs-cTnT è validato solo <strong>a 1 h</strong> (≥5 ng/L) e <strong>a 2 h</strong> (≥10 ng/L): a intervalli diversi nessuna soglia è validata, e il Δ cresce con l'intervallo. Il valore è mostrato, la soglia no.", "p. 27 · S p. 12"]);
+      } else {
+        r.testo = "sopra il 99° percentile, senza il Δ validato";
+        r.perche = "primo prelievo ≤ URL; Δ " + (sotto[0] === "1" ? "a 1 h sotto 5" : "a 2 h sotto 10") + " ng/L";
+      }
+      return giudica(s, r);
+    }
+    /* primo prelievo sopra l'URL: il Δ relativo fra due prelievi, sul primo
+       dei due («fra le misure», p. 9) */
+    r.base = "relativo";
+    var rel = 0, ra = 0, rb = 0;
+    for (i = 0; i < n - 1; i++) for (j = i + 1; j < n; j++) {
+      if (pts[i].v <= 0) continue;
+      var x = (pts[j].v - pts[i].v) / pts[i].v;
+      if (Math.abs(x) > Math.abs(rel)) { rel = x; ra = i; rb = j; }
+    }
+    r.rel = rel;
+    var fra = n > 2 ? " fra il prelievo " + pts[ra].n + " e il " + pts[rb].n : "";
+    if (Math.abs(rel) > REL) {
+      r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto"; r.dinamica = "relativa";
+      r.perche = "primo prelievo sopra l'URL; variazione del " + pc(rel) + fra + " (oltre il 20%)";
+      return r;
+    }
+    r.chiedi = true;
+    var blocco = "";
+    if (val) blocco = "il Δ validato del saggio c'è (" + segno(val.d) + " ng/L in " + val.h + " h, ≥ " + S4[val.h][4] + ")";
+    else if (esc && alg.p === 2) blocco = "l'algoritmo dice rule-in";
+    else if (esc && alg.p === 1 && !(alg.oss && alg.oss.ok)) blocco = "l'algoritmo dice osservazione, senza i criteri a 3 h soddisfatti";
+    else if (span < FIN["3"][0]) blocco = "i prelievi coprono meno di 3 h";
+    if (val) {
+      r.k = 9; r.testo = "entro il 20%, ma con il Δ validato del saggio";
+      r.perche = "variazione massima " + pc(rel) + fra + "; " + blocco;
+      r.note.push(["", "Il 20% non basta a dire «stabile» quando il <strong>Δ assoluto validato</strong> della hs-cTnT è raggiunto: dove il saggio ha un criterio assoluto validato, quello resta il riferimento migliore anche a basale alto.", "UDMI4 p. 255 · S p. 12 · distillato § 2.3.2"]);
+    } else if (s.stabile && r.sopra >= 2 && !blocco) {
+      r.k = 1; r.tn = "cronico"; r.testo = "compatibile con danno cronico";
+      r.perche = r.sopra + " valori sopra il 99° percentile, variazione massima " + pc(rel) + fra + " (entro il 20%), su " + durata(span) + ", situazione clinica stabile";
+    } else {
+      r.k = 1; r.testo = "elevata e stabile: acuto o cronico?";
+      r.perche = "variazione massima " + pc(rel) + fra + " (entro il 20%)" + (blocco ? "; " + blocco : "") + (s.stabile ? "" : "; situazione clinica non dichiarata stabile");
+      if (blocco && blocco.indexOf("3 h") >= 0 && blocco.indexOf("algoritmo") < 0) r.note.push(["", "Prelievi <strong>ravvicinati</strong> distinguono male il danno acuto dal cronico: in acuto la priorità è escluderlo con un percorso validato. Il cronico si considera su una serie di almeno 3 h." + lettStr(), "p. 9"]);
+      if (blocco && blocco.indexOf("algoritmo") >= 0) r.note.push(["stop", "<strong>Non è «cronico» finché l'algoritmo dice " + (alg.p === 2 ? "rule-in" : "osservazione") + ":</strong> il rule-in chiede di norma ricovero e coronarografia, e l'osservazione ha una mortalità paragonabile al rule-in.", "p. 3740 · UDMI5 p. 9"]);
+    }
+    return giudica(s, r);
+  }
+
+  /* Dopo una procedura: troponina in salita, con almeno un valore sopra il
+     99° percentile E sopra il valore pre-procedura, se noto (Fig. 6 nota a,
+     p. 17). Basale sopra l'URL: salita oltre il 20% (UDMI4 p. 250). */
+  function letturaProc(s, P, r, url) {
+    var pts = P.pts, n = pts.length, pre = P.pre, max = r.forma.max, i;
+    if (r.sopra === 0) {
+      var ultimo = pts[n - 1].t !== null ? (pts[n - 1].t - s.tProc) / ORA : null;
+      r.k = 0; r.testo = "nessun valore dopo la procedura sopra il 99° percentile";
+      if (ultimo !== null && ultimo >= PROC_ORE) { r.tn = "assente"; r.perche = (pre ? "pre-procedura " + fmt(pre.v) + " ng/L; " : "") + n + (n === 1 ? " prelievo" : " prelievi") + " dopo, tutti ≤ " + fmt(url) + " ng/L, l'ultimo a " + fmt(ultimo) + " h"; }
+      else {
+        r.k = 9; r.testo = "nessun valore sopra il 99° percentile, finora";
+        r.perche = "l'ultimo prelievo è a " + (ultimo === null ? "—" : fmt(ultimo)) + " h dalla procedura";
+        r.note.push(["", "Troppo presto per escludere: il picco cade a 3–12 h dopo cardiochirurgia e a 12–24 h dopo PCI, e con ischemia o complicanza servono il basale e un prelievo a <strong>12–24 h</strong>. Qui «nessun danno» si dice solo con un prelievo ad almeno " + PROC_ORE + " h." + lettStr(), "pp. 25–26"]);
+      }
+      return r;
+    }
+    if (pre) {
+      if (pre.v <= url) {
+        r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
+        r.perche = "pre-procedura " + fmt(pre.v) + " ng/L (≤ URL), dopo fino a " + fmt(max) + " ng/L: sopra il 99° percentile e sopra il valore pre-procedura";
+        return r;
+      }
+      var rp = (max - pre.v) / pre.v;
+      r.base = "relativo"; r.rel = rp;
+      if (rp > REL) {
+        r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
+        r.perche = "pre-procedura già sopra l'URL (" + fmt(pre.v) + " ng/L); dopo fino a " + fmt(max) + " ng/L, " + pc(rp) + " (oltre il 20%)";
+        return r;
+      }
+      r.k = 1; r.chiedi = true; r.testo = "nessuna salita oltre il 20% sul pre-procedura";
+      r.perche = "pre-procedura " + fmt(pre.v) + " ng/L, massimo dopo " + fmt(max) + " ng/L (" + pc(rp) + ")";
+      return giudica(s, r);
+    }
+    if (n === 1) {
+      r.k = 9; r.testo = "sopra il 99° percentile: serve la serie, o il valore pre-procedura";
+      r.perche = "un solo prelievo dopo la procedura, " + fmt(pts[0].v) + " ng/L";
+      return r;
+    }
+    var v0 = pts[0].v, dopo = null;
+    for (i = 1; i < n; i++) if (dopo === null || pts[i].v > dopo) dopo = pts[i].v;
+    if (v0 <= url) {
+      /* dal primo prelievo sotto l'URL a un valore sopra: e' la salita della nota a */
+      r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
+      r.perche = "senza il valore pre-procedura: dal primo prelievo dopo (" + fmt(v0) + " ng/L, ≤ URL) fino a " + fmt(dopo) + " ng/L, sopra il 99° percentile";
+      return r;
+    }
+    var rr = (dopo - v0) / v0; r.base = "relativo"; r.rel = rr;
+    if (rr > REL) {
+      r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
+      r.perche = "senza il valore pre-procedura: dal primo prelievo dopo (" + fmt(v0) + " ng/L) fino a " + fmt(dopo) + " ng/L, " + pc(rr) + " (oltre il 20%)";
+      return r;
+    }
+    r.k = 1; r.chiedi = true; r.testo = "senza salita oltre il 20% dal primo prelievo";
+    r.perche = "dal primo prelievo dopo (" + fmt(v0) + " ng/L) il massimo successivo è " + fmt(dopo) + " ng/L (" + pc(rr) + ")";
+    return giudica(s, r);
+  }
+
+  /* Dove nessuna soglia decide, la casella del medico (p. 26). */
+  function giudica(s, r) {
+    if (r.chiedi && s.giudizio) {
+      r.tn = "acuto"; r.k = 2; r.dinamica = "giudizio";
+      r.testo = "danno miocardico acuto, per giudizio clinico";
+    }
+    return r;
+  }
+
+  /* La cinetica dopo una procedura: picco, ore, multipli dell'URL. */
+  function cineticaProc(s, P) {
+    var r = { picco: null, hPicco: null, sale6: null, sale6_24: null, multiplo: null, giorni: null };
+    var pts = P.pts;
+    if (s.ctx !== "proc" || s.tProc === null || !pts.length) return r;
+    r.giorni = pts[0].t !== null ? (pts[0].t - s.tProc) / GIORNO : null;
+    var f = forma(pts);
+    r.picco = f.max; r.hPicco = pts[f.imax].t !== null ? (pts[f.imax].t - s.tProc) / ORA : null;
+    if (s.url) r.multiplo = f.max / s.url;
+    var maxPrima = null, i, h;
+    for (i = 0; i < pts.length; i++) {
+      h = pts[i].t === null ? null : (pts[i].t - s.tProc) / ORA;
+      if (h === null) continue;
+      if (h >= 6 && maxPrima !== null) {
+        if (pts[i].v > maxPrima) r.sale6 = true; else if (r.sale6 === null) r.sale6 = false;
+        if (h <= 24) { if (pts[i].v > maxPrima) r.sale6_24 = true; else if (r.sale6_24 === null) r.sale6_24 = false; }
+      }
+      if (maxPrima === null || pts[i].v > maxPrima) maxPrima = pts[i].v;
+    }
+    return r;
+  }
+
+  /* L'ECG: occlusione, ischemia, onde Q, dalle derivazioni e dai reperti. */
+  function ecgLeggi(s) {
+    var L = s.ld, r = { stato: "", occl: [], isch: [], q: [], note: [], regioni: [], segnato: false };
+    function ha(d, k) { return !!(L[d] && L[d][k]); }
+    function coppie(k) {
+      var out = [];
+      for (var i = 0; i < CONTIGUE.length; i++) if (ha(CONTIGUE[i][0], k) && ha(CONTIGUE[i][1], k)) out.push(CONTIGUE[i][0] + "–" + CONTIGUE[i][1]);
+      return out;
+    }
+    function quali(k, lista) { var out = []; for (var i = 0; i < lista.length; i++) if (ha(lista[i], k)) out.push(lista[i]); return out; }
+    /* la regione si legge dalle derivazioni che stanno in una coppia contigua */
+    function regioniDi(k) {
+      var out = [], c = coppie(k);
+      for (var i = 0; i < c.length; i++) {
+        var dd = c[i].split("–");
+        for (var j = 0; j < 2; j++) if (REGIONE[dd[j]] && out.indexOf(REGIONE[dd[j]]) < 0) out.push(REGIONE[dd[j]]);
+      }
+      return out;
+    }
+    for (var d in L) if (L.hasOwnProperty(d) && (L[d].su || L[d].giu || L[d].tneg || L[d].q)) r.segnato = true;
+    var bbs = s.eBbsPre || s.eBbsNuovo, pacing = s.ePacing, nascosto = bbs || pacing || s.eIvs;
+    var k;
+    var cSu = coppie("su"), cGiu = coppie("giu"), cT = coppie("tneg"), cQ = coppie("q");
+    var suStd = [], suPost = [], suDx = [];
+    for (k = 0; k < cSu.length; k++) {
+      var a = cSu[k].split("–")[0];
+      if (/^V[789]$/.test(a)) suPost.push(cSu[k]); else if (/R$/.test(a)) suDx.push(cSu[k]); else suStd.push(cSu[k]);
+    }
+    var dxSu = quali("su", ["V3R", "V4R", "V5R", "V6R"]);
+    var regSu = regioniDi("su"), regGiu = regioniDi("giu");
+
+    if (suStd.length) {
+      if (bbs || pacing) r.note.push(["", "ST↑ segnato in " + suStd.join(", ") + ", ma con blocco di branca sinistra o pacing le soglie della Tab. 5 non si applicano: si leggono i <strong>criteri di Sgarbossa</strong>, qui sotto.", "Tab. 5 · p. 22"]);
+      else if (s.eIvs) r.note.push(["", "ST↑ segnato in " + suStd.join(", ") + ", ma con <strong>ipertrofia ventricolare sinistra</strong> le soglie della Tab. 5 non si applicano: si giudica con la clinica e l'ECG precedente.", "Tab. 5, p. 23"]);
+      else {
+        r.occl.push("ST↑ in due derivazioni contigue: " + suStd.join(", ") + " (" + regSu.filter(function (x) { return x !== "posteriore" && x !== "ventricolo destro"; }).join(", ") + ")");
+        if (s.eBbd || s.eBbdNuovo) r.note.push(["info", "Con <strong>blocco di branca destra</strong> il sopraslivellamento ST indica lo STEMI; il sottoslivellamento in I, aVL e V5–V6 indica una SCA senza ST↑.", "ESC 2023 S p. 7"]);
+      }
+    }
+    if (suPost.length) r.occl.push("ST↑ nelle posteriori " + suPost.join(", ") + ": infarto posteriore (soglia 0,5 mm, 1 mm negli uomini sotto i 40 anni, UDMI4 p. 259)");
+    else if (quali("su", ["V7", "V8", "V9"]).length === 1) r.note.push(["", "ST↑ in una sola derivazione posteriore: ne servono due contigue.", "Tab. 5"]);
+    var infSu = regSu.indexOf("inferiore") >= 0 && suStd.length > 0;
+    if (suDx.length || (infSu && quali("su", ["V3R", "V4R"]).length)) r.occl.push("ST↑ nelle precordiali destre " + dxSu.join(", ") + ": infarto del ventricolo destro (soglia 0,5 mm in V3R–V4R, 1 mm negli uomini sotto i 30 anni, UDMI4 p. 259)");
+    else if (dxSu.length) r.note.push(["", "ST↑ in una sola precordiale destra (" + dxSu.join(", ") + "), senza sopraslivellamento inferiore: è un criterio di <strong>supporto</strong>, non basta da solo. Le soglie sono date solo per V3R e V4R.", "p. 21 · UDMI4 p. 259"]);
+    if (s.pPost) r.occl.push("ST↓ ≥1 mm in V1–V3 con R dominante: suggerisce un infarto posteriore, da confermare con V7–V9");
+    else if (quali("giu", ["V1", "V2", "V3"]).length && !suPost.length) r.note.push(["info", "ST↓ in V1–V3: se è <strong>≥1 mm</strong>, specie con R più ampia di S in V1–V2, suggerisce un infarto <strong>posteriore</strong>. Registra V7–V9.", "p. 21"]);
+    if (ha("I", "su") && ha("aVL", "su") && ha("V2", "su") && ha("III", "giu")) r.occl.push("segno della «bandiera sudafricana»: ST↑ in I, aVL e V2, ST↓ in III");
+    if (s.pAsl) r.occl.push("pattern di Aslanger");
+    else if (ha("III", "su") && !ha("II", "su") && !ha("aVF", "su") && quali("giu", ["V4", "V5", "V6"]).length) r.note.push(["info", "ST↑ solo in III con ST↓ in V4–V6: se la T è positiva è il <strong>pattern di Aslanger</strong>, che suggerisce l'occlusione. Spuntalo, se c'è.", "p. 22"]);
+    if (s.pdW) r.occl.push("onde T di de Winter");
+    if (s.pWel) r.occl.push("sindrome di Wellens");
+    if ((bbs || pacing) && (s.sg1 || s.sg2 || s.sg3)) r.occl.push("criteri di Sgarbossa con " + (pacing ? "pacing ventricolare" : "blocco di branca sinistra"));
+    if ((cGiu.length || cT.length) && nascosto) r.secondari = true;
+    if ((cGiu.length || cT.length) && nascosto) r.note.push(["", "ST↓ o T negative segnati, ma con " + (bbs ? "blocco di branca sinistra" : (pacing ? "pacing ventricolare" : "ipertrofia ventricolare sinistra")) + " sono di norma <strong>secondari</strong>: non entrano fra le alterazioni ischemiche. Con il blocco o il pacing si leggono i criteri di Sgarbossa; si confronta con l'ECG precedente.", "UDMI4 p. 258 · UDMI5 p. 22"]);
+    else {
+      if (cGiu.length) r.isch.push("ST↓ ≥0,5 mm, orizzontale o discendente, in " + cGiu.join(", ") + " (" + regGiu.join(", ") + ")");
+      if (cT.length) r.isch.push("T negativa ≥1 mm in " + cT.join(", ") + " (" + regioniDi("tneg").join(", ") + ")");
+      if ((cGiu.length || cT.length) && (s.eBbd || s.eBbdNuovo)) r.note.push(["info", "Con <strong>blocco di branca destra</strong>, ST↓ e T negative in V1–V3 possono essere secondarie; il sottoslivellamento in I, aVL e V5–V6 indica una SCA senza ST↑.", "ESC 2023 S p. 7"]);
+    }
+    if (s.pIper) r.occl.push("onde T iperacute: il cambiamento più precoce dell'occlusione (Fig. 9)");
+    if (s.pBif) r.isch.push("onde T bifasiche");
+    if (s.pAr) r.isch.push("fibrillazione o tachicardia ventricolare");
+    if (s.pArR) r.occl.push("aritmia ventricolare refrattaria (Fig. 9)");
+    var giuStd = quali("giu", STD);
+    if (ha("aVR", "su") && regGiu.length >= 2) r.isch.push("ST↑ in aVR con sottoslivellamento diffuso: ischemia globale, da tronco comune o malattia trivasale bilanciata");
+    else if (ha("aVR", "su")) r.note.push(["info", "ST↑ in aVR: con un sottoslivellamento diffuso indica ischemia <strong>globale</strong> (tronco comune o trivasale); accompagna anche il sopraslivellamento delle precordiali destre nell'infarto del ventricolo destro.", "pp. 21–23"]);
+    if ((s.eBbsNuovo || s.eBbdNuovo) && (s.c1 || r.isch.length)) r.occl.push("blocco di branca " + (s.eBbsNuovo ? "sinistra" : "destra") + " nuovo, con altri segni di ischemia");
+    if (cQ.length) r.q.push("onde Q patologiche (≥40 ms e/o ≥25% della R) in " + cQ.join(", ") + " (" + regioniDi("q").join(", ") + ")");
+
+    if (suStd.length && !nascosto) {
+      var regStd = regSu.filter(function (x) { return x === "inferiore" || x === "anteriore" || x === "laterale"; });
+      var specchio = false;
+      for (k = 0; k < regGiu.length; k++) if (regSu.indexOf(regGiu[k]) < 0) specchio = true;
+      if (specchio) r.note.push(["info", "Sopraslivellamento <strong>regionale con alterazioni speculari</strong>: è il disegno tipico della patologia coronarica acuta.", "p. 23"]);
+      else if (regStd.length >= 3 && !giuStd.filter(function (x) { return x !== "aVR" && x !== "V1"; }).length) r.note.push(["", "Sopraslivellamento <strong>diffuso</strong>, in più territori e <strong>senza speculari</strong>: è il disegno della pericardite o della ripolarizzazione precoce. Lo ST↑ non è specifico dell'infarto (anche miocardite, Brugada, Takotsubo, EP, iperkaliemia, ipotermia).", "p. 23"]);
+    }
+    /* «molto sospetti» = dolore in corso e sospetto che resta alto: lettura
+       dello strumento dell'ESC 2023 S p. 7 */
+    var bb = bbs || pacing || s.eBbd || s.eBbdNuovo;
+    if (bb && s.f2 && s.f3 && !(bbs && (s.sg1 || s.sg2 || s.sg3))) {
+      r.occl.push((bbs ? "blocco di branca sinistra" : (pacing ? "pacing ventricolare" : "blocco di branca destra")) + ", noto o no, con dolore in corso e sospetto alto di ischemia: strategia di riperfusione (ESC 2023 S p. 7)");
+      r.note.push(["info", "Il blocco da solo non indica l'occlusione, ma ne nasconde i segni: con sintomi o segni molto sospetti di ischemia in corso si va alla riperfusione. «Molto sospetti» qui vuol dire dolore in corso e sospetto che resta alto." + lettStr(), "ESC 2023 S p. 7"]);
+    }
+
+    if (r.occl.length) r.stato = "occl";
+    else if (r.isch.length || r.q.length) r.stato = "isch";
+    else if (r.segnato) r.stato = "isolati";
+    else if (s.eNorm) r.stato = "nessuno";
+    r.regioni = regSu;
+    r.critST = (r.stato === "occl" || r.isch.length > 0) && s.eNuovo;
+    r.critQ = r.q.length > 0 && s.eQnuove;
+    return r;
+  }
+
+  /* ═══ CLASSIFICAZIONE (come nel Tool UDMI5, senza i codici) ══════════ */
+  function nCrit(s, ec) { return (s.c1 ? 1 : 0) + (ec.critST ? 1 : 0) + (ec.critQ ? 1 : 0) + (s.ctx === "proc" && s.c4 ? 1 : 0); }
+  function criteriTx(s, ec) {
+    var c = [];
+    if (s.c1) c.push("sintomi di ischemia");
+    if (ec.critST) c.push("alterazioni ischemiche nuove");
+    if (ec.critQ) c.push("onde Q nuove");
+    if (s.ctx === "proc" && s.c4) c.push("deterioramento in sedazione");
+    return c.join(", ");
+  }
+
+  function primario(s, cur, ec, r) {
+    r.cat = "IM primario"; r.scala = ["probabile", "confermato"];
+    if (cur.tn === "") { r.attesa = cur.testo ? "la curva non è ancora leggibile: " + cur.testo : "manca la troponina"; return r; }
+    if (cur.tn !== "acuto") return senzaDanno(s, cur, ec, r);
+    if (nCrit(s, ec) === 0) {
+      r.liv = "nonimf"; r.cat = "danno miocardico acuto";
+      r.note.push(["", "<strong>Danno acuto senza criteri clinici né ECG:</strong> il Box 3 chiede almeno uno fra sintomi di ischemia, alterazioni ischemiche nuove e onde Q nuove. Va cercata la causa del danno: infiammazione, stress emodinamico o fisiologico, catecolamine, tossicità, trauma.", "Box 3 p. 10 · Tab. 2 p. 8"]);
+      return r;
+    }
+    r.liv = "probabile";
+    if (s.angio && PAT[s.angio]) { r.liv = "confermato"; r.perche = "patologia coronarica acuta all'angiografia: " + PAT[s.angio]; return r; }
+    if (s.angio === "ostr" || s.angio === "nonostr") {
+      if (s.img === "si") { r.liv = "confermato"; r.perche = "nessuna patologia coronarica acuta, ma nuova anomalia della cinetica o miocardio non vitale in pattern ischemico (eziologia indeterminata)"; return r; }
+      if (s.img === "no") {
+        r.liv = "escluso"; r.perche = "nessuna patologia coronarica acuta e imaging cardiaco negativo";
+        r.note.push(["info", "Resta da chiarire la causa del danno acuto: con coronarie non ostruttive la RM cardiaca è la metodica di scelta, e più spesso trova una miocardite o una sindrome di Takotsubo.", "pp. 12–13, 21"]);
+        return r;
+      }
+      r.perche = "nessuna patologia coronarica acuta all'angiografia: serve l'imaging cardiaco";
+      r.passi.push(["→", "<strong>Imaging cardiaco</strong>: una nuova anomalia della cinetica o miocardio non vitale in pattern ischemico confermano l'infarto (eziologia indeterminata); se manca, è escluso.", "Fig. 2 p. 11"]);
+      if (s.angio === "nonostr") r.passi.push(["·", "È la <strong>diagnosi di lavoro di MINOCA</strong>: RM, idealmente entro 2 settimane; imaging intravascolare e test funzionali possono trovare la patologia acuta che l'angiografia non vede.", "p. 21"]);
+      return r;
+    }
+    if (s.img === "si") { r.liv = "confermato"; r.perche = "nuova anomalia della cinetica o miocardio non vitale in pattern ischemico, senza imaging coronarico";
+      r.passi.push(["→", "Con l'<strong>angiografia</strong> si identifica la patologia coronarica acuta, che la diagnosi finale riporta.", "p. 13"]); return r; }
+    r.perche = "danno acuto con " + criteriTx(s, ec);
+    r.passi.push(["→", "<strong>Angiografia coronarica</strong> — con imaging intravascolare se serve — e/o <strong>imaging cardiaco</strong> per confermare e definire il meccanismo.", "Box 3 p. 10 · p. 12"]);
+    r.passi.push(["·", "Dove angiografia e imaging non sono disponibili o non sono appropriati, la diagnosi finale di IM primario si può dare sui soli criteri clinici, ECG e dei biomarcatori, a eziologia ignota.", "Fig. 2 nota d, p. 11"]);
+    return r;
+  }
+
+  function secondario(s, cur, ec, r) {
+    r.cat = "IM secondario"; r.scala = ["considerato", "probabile", "confermato"];
+    if (cur.tn === "") { r.attesa = cur.testo ? "la curva non è ancora leggibile: " + cur.testo : "manca la troponina"; return r; }
+    if (cur.tn !== "acuto") return senzaDanno(s, cur, ec, r);
+    if (s.angio && PAT[s.angio]) {
+      r.cat = "IM primario"; r.scala = ["probabile", "confermato"]; r.liv = "confermato";
+      r.perche = "l'angiografia ha trovato una patologia coronarica acuta (" + PAT[s.angio] + "): la diagnosi diventa IM primario";
+      return r;
+    }
+    if (nCrit(s, ec) === 0) {
+      r.liv = "nonimf"; r.cat = "danno miocardico acuto";
+      r.note.push(["", "Il Box 4 chiede almeno un criterio fra sintomi di ischemia, alterazioni ischemiche nuove e onde Q nuove: senza, è il <strong>danno acuto della condizione di base</strong>.", "Box 4 p. 13"]);
+      return r;
+    }
+    r.liv = (s.p1 || s.p2) ? "probabile" : "considerato";
+    if (s.angio === "ostr") { r.liv = "confermato"; r.perche = "CAD ostruttiva senza patologia coronarica acuta"; return r; }
+    if (s.img === "si") { r.liv = "confermato"; r.perche = "nuova anomalia della cinetica o miocardio non vitale in pattern ischemico"; return r; }
+    if (s.angio === "nonostr" && s.img === "no") {
+      r.liv = "escluso"; r.perche = "coronarie non ostruttive e imaging cardiaco negativo";
+      r.note.push(["info", "Resta il <strong>danno miocardico acuto</strong> della condizione di base: se ne cerca la causa.", "Fig. 4 p. 14 · p. 16"]);
+      return r;
+    }
+    r.perche = r.liv === "probabile" ? "criteri clinici o ECG, con " + (s.p1 ? "CAD nota" : "un forte sospetto") : "criteri clinici o ECG in una condizione acuta con squilibrio";
+    r.passi.push(["→", "Si conferma con <strong>CAD ostruttiva</strong> (≥70%, o ≥50% che limita il flusso) senza patologia acuta, oppure con una <strong>nuova anomalia della cinetica</strong> o miocardio non vitale.", "Box 4 p. 13"]);
+    r.passi.push(["·", "Ischemia persistente o ricorrente con l'IM primario nel differenziale → <strong>coronarografia</strong>. Altrimenti l'imaging si rinvia spesso a dopo il trattamento della condizione acuta; se il primario è poco probabile, TC coronarica a guarigione.", "p. 16 · Fig. 4 nota c"]);
+    r.passi.push(["·", "Con comorbidità, fragilità avanzata o aspettativa di vita limitata l'imaging può non essere appropriato: la diagnosi resta clinica, e CAD nota o un danno che compromette la funzione la rendono più probabile.", "p. 16"]);
+    return r;
+  }
+
+  function procedura(s, cur, ec, cin, r) {
+    if (s.pNonCorr) {
+      r.attesa = "evento indipendente dalla procedura: scegli il contesto spontaneo o l'altra condizione acuta";
+      r.note.push(["info", "Nei 30 giorni può esserci un infarto che non dipende dalla procedura: si classifica come primario o secondario secondo il contesto.", "p. 19"]);
+      return r;
+    }
+    if (cin.giorni !== null && cin.giorni > 30) {
+      r.attesa = "oltre 30 giorni dalla procedura: scegli il contesto spontaneo";
+      r.note.push(["info", "<strong>Oltre 30 giorni</strong> un evento coronarico legato a una procedura precedente è un <strong>IM primario</strong> — restenosi, trombosi di stent, fallimento di graft —: la curva si legge nel contesto spontaneo, con l'algoritmo se si applica.", "p. 19 · Tab. 4"]);
+      return r;
+    }
+    r.cat = "IM procedura-correlato"; r.scala = ["considerato", "probabile", "confermato"];
+    if (!s.ptipo) { r.attesa = "scegli la procedura"; return r; }
+    if (s.tProc === null) { r.attesa = "manca la fine della procedura"; return r; }
+    if (cur.tn === "") { r.attesa = cur.testo ? "la curva non è ancora leggibile: " + cur.testo : "manca la troponina"; return r; }
+    if (cur.tn !== "acuto") return senzaDanno(s, cur, ec, r);
+    if (!s.pSosp || nCrit(s, ec) === 0) {
+      r.liv = "nonimf"; r.cat = "danno miocardico acuto";
+      r.note.push(["", "Dopo una procedura un certo danno acuto è <strong>ubiquitario</strong>: il Box 5 chiede una complicanza coronarica sospetta <strong>e</strong> almeno un criterio clinico o ECG.", "Box 5 p. 16 · p. 17"]);
+      return r;
+    }
+    r.liv = s.p3 ? "probabile" : "considerato";
+    var ang = s.compl === "si", img = s.img === "si";
+    if (s.pDurante) {
+      if (ang && img) { r.liv = "confermato"; r.perche = "complicanza angiografica e nuova anomalia della cinetica nel territorio: servono entrambe, e ci sono"; return r; }
+      if (s.compl === "no" && s.img === "no") { r.liv = "escluso"; r.cat = "nessun IM procedura-correlato"; r.perche = "nessuna complicanza angiografica e imaging negativo"; return r; }
+      if (ang && s.img === "no") { r.liv = "escluso"; r.cat = "complicanza senza infarto"; r.perche = "complicanza angiografica, ma imaging senza nuova anomalia della cinetica"; return r; }
+      if (img && s.compl === "no") {
+        r.liv = "escluso"; r.cat = "IM procedura-correlato non confermato";
+        r.perche = "durante la procedura servono entrambe le prove, e l'angiografia non mostra una complicanza";
+        r.note.push(["info", "La nuova anomalia della cinetica resta da spiegare con un'altra causa.", "Box 5 p. 16 · p. 18"]);
+        return r;
+      }
+      if (ang || img) {
+        r.perche = "complicanza insorta durante la procedura, o procedura in corso di IM acuto: " + (ang ? "manca l'imaging" : "manca l'angiografia");
+        r.note.push(["stop", "<strong>Qui una sola prova non basta:</strong> servono l'evidenza angiografica <strong>e</strong> quella dell'imaging.", "Box 5 p. 16 · p. 18"]);
+        return r;
+      }
+    } else {
+      if (ang || img) { r.liv = "confermato"; r.perche = ang ? "complicanza coronarica all'angiografia" : "nuova anomalia della cinetica nel territorio della coronaria"; return r; }
+      if (s.compl === "no" && s.img === "no") { r.liv = "escluso"; r.cat = "complicanza senza infarto"; r.perche = "nessuna complicanza angiografica e imaging negativo"; return r; }
+    }
+    r.perche = "complicanza sospetta con danno acuto e " + criteriTx(s, ec);
+    r.passi.push(["→", "Conferma con l'<strong>angiografia</strong> (complicanza coronarica) " + (s.pDurante ? "<strong>e</strong>" : "o") + " con l'<strong>imaging cardiaco</strong> (nuova anomalia della cinetica nel territorio della coronaria coinvolta).", "Box 5 p. 16"]);
+    r.passi.push(["·", "Nessuna soglia unica di troponina conferma o esclude: la conferma la dà l'imaging.", "p. 17"]);
+    return r;
+  }
+
+  function senzaDanno(s, cur, ec, r) {
+    if (cur.tn === "cronico") {
+      r.liv = "nonimf"; r.cat = "danno miocardico cronico";
+      r.note.push(["info", "Il danno cronico si <strong>considera</strong> con due o più valori sopra il 99° percentile in situazione stabile; si <strong>conferma</strong> con una condizione cardiaca o non cardiaca che rimodella il cuore; si <strong>esclude</strong> se l'aumento è spiegato da interferenza analitica o ridotta clearance.", "Box 2 p. 8"]);
+      r.passi.push(["·", "Se i valori restano elevati, si può approfondire la condizione cardiaca sottostante; l'imaging aiuta a capire se è strutturale o coronarica. La troponina si può ripetere in ambulatorio, o confrontare con una precedente.", "p. 9"]);
+      return r;
+    }
+    r.liv = "escluso"; r.cat = "nessun danno miocardico acuto";
+    if (s.ctx === "spont" && (s.c1 || ec.critST)) {
+      r.cat = "infarto escluso: angina instabile da considerare";
+      r.note.push(["info", "Con sintomi nuovi a riposo o per sforzi minimi, o un peggioramento improvviso in una sindrome coronarica cronica, e l'infarto escluso dai prelievi seriati: si considera l'<strong>angina instabile</strong>, più probabile con ischemia all'ECG e confermata da una patologia coronarica acuta all'angiografia.", "p. 20"]);
+    }
+    return r;
+  }
+
+  function classifica(s, cur, ec, cin) {
+    var r = { cat: "—", liv: null, perche: "", attesa: "", note: [], passi: [], scala: [] };
+    if (!s.ctx) { r.attesa = "scegli il contesto"; return r; }
+    if (s.ctx === "spont") r = primario(s, cur, ec, r);
+    else if (s.ctx === "sec") r = secondario(s, cur, ec, r);
+    else r = procedura(s, cur, ec, cin, r);
+    if (s.ctx === "spont" && ec.stato === "occl") r.passi.unshift(["!", "<strong>Diagnosi di lavoro di STEMI</strong>, o di occlusione con un suo equivalente: triage immediato per la riperfusione " + cor("I A") + ", senza aspettare la troponina. Per la diagnosi finale il danno acuto serve comunque.", "ESC 2023 p. 3739 · UDMI5 Fig. 2 note a–b, p. 11"]);
+    return r;
+  }
+
+  /* Le situazioni speciali: § 16, pp. 30-34. */
+  function speciali(s, cur, P) {
+    var n = [];
+    if (s.xReinf) {
+      n.push(["info", "<strong>Infarto nell'ultimo mese.</strong> La troponina resta elevata per settimane: contano le misure seriate, e valori <strong>in salita</strong> suggeriscono la recidiva. ST↑ persistente o T negative possono venire da aneurisma o pericardite. Spesso serve la coronarografia, anche per distinguere primario e procedura-correlato entro 30 giorni; la RM aiuta a riconoscere infarti multipli. Il reinfarto si classifica per meccanismo.", "pp. 30–31"]);
+      if (cur.base === "relativo") n.push(["", "Con la troponina già elevata, la Quarta UDMI chiedeva un aumento <strong>oltre il 20%</strong> nel secondo campione, a 3–6 h: è la stessa soglia dichiarata qui.", "UDMI4 p. 252"]);
+    }
+    if (s.xHF) n.push(["info", "<strong>Scompenso.</strong> Fino al 90% degli scompensi acuti ha la troponina T sopra l'URL: danno senza infarto, frequente, che si scambia per infarto. Fanno pensare al <strong>primario</strong> come causa il dolore o i suoi equivalenti con ischemia all'ECG, e la CAD nota; al <strong>secondario</strong> aritmie, ipossia, ipotensione, anemia. Le misure seriate distinguono meglio acuto e cronico; l'imaging va confrontato con il precedente.", "pp. 31–32"]);
+    if (s.xCKD) n.push(["info", "<strong>Malattia renale cronica.</strong> Troponina spesso elevata ma stabile, che <strong>non si liquida</strong> come sola ridotta clearance. Le misure seriate contano di più, e specificità e valore predittivo del 99° percentile e delle soglie alte sono più bassi. I percorsi sono gli stessi, e le soglie ESC valgono a ogni funzione renale. Un filtrato dimezzato raddoppia il valore basale. L'imaging serve di più; il rischio della nefropatia da contrasto è spesso sopravvalutato.", "pp. 8–9, 32 · ESC 2023 S p. 12"]);
+    if (s.xCrit) n.push(["info", "<strong>Paziente critico.</strong> Conta il pattern di <strong>salita e discesa</strong> alle misure seriate. Lo ST↑ è frequente e meno specifico per l'IM primario, e senza troponina l'ECG è poco affidabile. Coronarografia urgente se il primario è probabile o se la diagnosi cambia la gestione; altrimenti l'imaging si rinvia alla stabilizzazione, con il cardiologo nel gruppo.", "pp. 32–33"]);
+    if (s.xNCS) {
+      n.push(["info", "<strong>Dopo chirurgia non cardiaca.</strong> Gli eventi cadono per lo più nei primi 2 giorni, e fino a due terzi sono senza sintomi ischemici. Con un deterioramento clinico o un danno acuto l'<strong>ECG è essenziale</strong>; con ST↑, coronarografia urgente. PMI è il danno acuto peri-operatorio, con o senza segni di ischemia; MINS il suo sottoinsieme più probabilmente ischemico, con una mortalità a 30 giorni otto volte più alta. Entrambi chiedono ECG e imaging per confermare o escludere un IM primario o secondario.", "p. 33"]);
+      n.push(["", "Se la troponina si dosa dopo l'intervento, il <strong>valore pre-operatorio</strong> è essenziale per distinguere il danno cronico dal PMI: fino al 40% dei pazienti con malattia o fattori di rischio cardiovascolari parte già elevato. Se ce l'hai, inseriscilo come <strong>primo prelievo</strong>.", "p. 33"]);
+    }
+    if (s.xOnco) n.push(["info", "<strong>Terapia oncologica.</strong> Con antracicline o inibitori dei checkpoint la troponina è più spesso elevata, anche per miocardite o disfunzione da terapia: si dosa in serie, e nel contesto giusto l'imaging cardiaco serve per confermare o escludere l'infarto. L'aterotrombosi resta la causa più comune di IM primario, ma vasospasmo ed embolia sono più frequenti.", "p. 34"]);
+    if (s.ctx === "proc" && s.ptipo === "strutt") n.push(["info", "<strong>Intervento strutturale.</strong> Dopo TAVI il danno miocardico c'è nel 66–100% dei pazienti: i biomarcatori <strong>non bastano mai da soli</strong>, e la diagnosi chiede l'imaging di nuova perdita di miocardio vitale in pattern ischemico, da una complicanza.", "p. 33"]);
+    if (s.eta !== null && s.eta >= 75) n.push(["", "Oltre i 75 anni 1 paziente su 3 con possibile infarto ha la troponina elevata, contro 1 su 20 sotto i 50: le misure seriate aiutano a distinguere acuto e cronico.", "pp. 24–25 · Box 6"]);
+    return n;
+  }
+
+  /* ═══ STATO ══════════════════════════════════════════════════════════ */
+  var LD = {};
+  var urlManuale = false;
+  var NATIVO = (function () { var i = document.createElement("input"); i.setAttribute("type", "datetime-local"); return i.type === "datetime-local"; })();
+
+  function el(id) { return document.getElementById(id); }
+  function ck(id) { var e = el(id); return !!(e && e.checked); }
+  function num(id) {
+    var e = el(id); if (!e || e.value === "") return null;
+    var v = parseFloat(String(e.value).replace(",", ".")); return (isFinite(v) && v >= 0) ? v : null;
+  }
+  function ora(id) { var e = el(id); return e ? leggiOra(e.value) : null; }
+  function radio(n) { var e = document.querySelector('input[name="' + n + '"]:checked'); return e ? e.value : ""; }
+  function S() {
+    var s = { sesso: radio("sesso"), eta: num("eta"), url: num("url"), ctx: radio("ctx"),
+              ptipo: el("ptipo").value, tProc: ora("tProc"), pSosp: ck("pSosp"), pDurante: ck("pDurante"), pNonCorr: ck("pNonCorr"),
+              cond: [], tOnset: ora("tOnset"), onsetIgnoto: ck("onsetIgnoto"),
+              c1: ck("c1"), c4: ck("c4"), f1: ck("f1"), f2: ck("f2"), f3: ck("f3"), stabile: ck("stabile"),
+              p1: ck("p1"), p2: ck("p2"), p3: ck("p3"), g1: ck("g1"), g2: ck("g2"), g3: ck("g3"),
+              xReinf: ck("xReinf"), xHF: ck("xHF"), xCKD: ck("xCKD"), xCrit: ck("xCrit"), xNCS: ck("xNCS"), xOnco: ck("xOnco"),
+              eBbsPre: ck("eBbsPre"), eBbsNuovo: ck("eBbsNuovo"), eBbdNuovo: ck("eBbdNuovo"), eBbd: ck("eBbd"), ePacing: ck("ePacing"), eIvs: ck("eIvs"),
+              eExtra: ck("eExtra"), pdW: ck("pdW"), pWel: ck("pWel"), pAsl: ck("pAsl"), pPost: ck("pPost"), pIper: ck("pIper"), pBif: ck("pBif"), pAr: ck("pAr"), pArR: ck("pArR"),
+              sg1: ck("sg1"), sg2: ck("sg2"), sg3: ck("sg3"), eNuovo: ck("eNuovo"), eQnuove: ck("eQnuove"), eNorm: ck("eNorm"),
+              ld: {}, righe: [], pre: { t: ora("tPre"), v: num("vPre") },
+              giudizio: ck("giudizio"), scala: radio("scala"),
+              angio: el("angio").value, img: el("img").value, compl: el("compl").value };
+    var c = document.querySelectorAll(".cond");
+    for (var i = 0; i < c.length; i++) if (c[i].checked) s.cond.push(c[i].getAttribute("data-n"));
+    for (var d in LD) if (LD.hasOwnProperty(d) && (STD.indexOf(d) >= 0 || s.eExtra)) s.ld[d] = LD[d];
+    for (var r = 1; r <= 6; r++) s.righe.push({ n: r, t: ora("t" + r), v: num("v" + r) });
+    if (s.ctx !== "proc") { s.pre = { t: null, v: null }; s.ptipo = ""; s.tProc = null; s.pSosp = s.pDurante = s.pNonCorr = s.p3 = s.c4 = false; s.compl = ""; }
+    if (s.ctx !== "sec") { s.p1 = s.p2 = false; s.cond = []; }
+    if (s.ctx !== "spont") s.g1 = s.g2 = s.g3 = false;
+    if (!(s.eBbsPre || s.eBbsNuovo || s.ePacing)) s.sg1 = s.sg2 = s.sg3 = false;
+    return s;
+  }
+
+  /* ═══ DISEGNO ════════════════════════════════════════════════════════ */
+  function vedi(id, si) { var e = el(id); e.className = e.className.replace(/\s*\bhide\b/g, "") + (si ? "" : " hide"); }
+  function cor(c) { return '<span class="cor c1">' + c + "</span>"; }
+  function pg(p) { return p ? ' <span class="pg">' + p + "</span>" : ""; }
+  function passo(ico, tx, p) { return '<div class="passo"><span class="ico">' + ico + '</span><span class="tx">' + tx + pg(p) + "</span></div>"; }
+  var AVVISI = [];
+  function nota(tipo, tx, p) {
+    if (tipo === "stop") { var x = piano(tx) + (p ? " [" + p + "]" : ""); if (AVVISI.indexOf(x) < 0) AVVISI.push(x); }
+    return '<div class="nota ' + tipo + '">' + tx + pg(p) + "</div>";
+  }
+  function chip(id, k, testo) { var e = el(id); e.className = "cat " + (k === null || k === undefined ? "kx" : k); e.innerHTML = testo; }
+  function lettStr() { return ' <span class="lettura">LETTURA DELLO STRUMENTO</span>'; }
+  function piano(h) { return String(h).replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"); }
+
+  function sogliaV23(s) {
+    if (s.sesso === "f") return "1,5 mm (donna)";
+    if (s.sesso === "m" && s.eta !== null) return (s.eta < 40 ? "2,5 mm (uomo sotto i 40 anni)" : "2 mm (uomo da 40 anni)");
+    return "2,5 mm negli uomini sotto i 40 anni, 2 mm da 40, 1,5 mm nelle donne";
+  }
+
+  function disegnaDerivazioni() {
+    var b = document.querySelectorAll(".ld");
+    for (var i = 0; i < b.length; i++) {
+      var d = b[i].getAttribute("data-ld"), x = LD[d] || {}, cls = "ld", bd = [];
+      if (x.su) { cls += " su"; bd.push("↑"); }
+      if (x.giu) { if (!x.su) cls += " giu"; bd.push("↓"); }
+      if (x.tneg) { if (!x.su && !x.giu) cls += " tneg"; bd.push("T−"); }
+      if (x.q) { if (!x.su && !x.giu && !x.tneg) cls += " q"; bd.push("Q"); }
+      b[i].className = cls;
+      b[i].querySelector(".bd").textContent = bd.join(" ");
+      b[i].setAttribute("aria-pressed", bd.length ? "true" : "false");
+    }
+  }
+
+  function tabella(s, P, cur) {
+    var pts = P.pts, righe = [], i;
+    if (P.pre) righe.push({ p: P.pre, pre: true });
+    for (i = 0; i < pts.length; i++) righe.push({ p: pts[i], pre: false });
+    if (!righe.length) return "";
+    var rif = s.ctx === "proc" ? "h dalla procedura" : "h dall'esordio";
+    var h = '<table class="tb"><thead><tr><th>Prelievo</th><th>data e ora</th><th>' + rif + '</th><th>dal precedente</th><th>ng/L</th><th>Δ dal precedente</th><th>Δ dal primo</th><th>× URL</th><th>fase</th></tr></thead><tbody>';
+    var primo = pts.length ? pts[0] : null;
+    for (i = 0; i < righe.length; i++) {
+      var p = righe[i].p, prev = i > 0 ? righe[i - 1].p : null, oh = oreDa(s, p.t);
+      var dprev = prev && prev.t !== null && p.t !== null ? durata((p.t - prev.t) / MIN) : "—";
+      var dp = prev ? segno(p.v - prev.v) : "—";
+      var d0 = (!righe[i].pre && primo && p !== primo) ? segno(p.v - primo.v) + " · " + (primo.v > 0 ? pc((p.v - primo.v) / primo.v) : "—") : "—";
+      var xu = s.url ? fmt(p.v / s.url) : "—";
+      h += "<tr><td>" + (righe[i].pre ? "pre-proc." : String(p.n)) + "</td><td>" + (p.t !== null ? fmtDT(p.t) : "—") + "</td><td>" + (oh !== null ? fmt(oh) : "—") + "</td><td>" + dprev + '</td><td class="' + (s.url !== null && p.v > s.url ? "su" : "") + '">' + fmt(p.v) + "</td><td>" + dp + "</td><td>" + d0 + "</td><td>" + xu + "</td><td>" + (s.ctx === "proc" ? "" : fase(oh)) + "</td></tr>";
+    }
+    return h + "</tbody></table>";
+  }
+
+  function scalaPassi(span) {
+    var passi = [0.5, 1, 2, 3, 6, 12, 24, 48, 72, 168, 336];
+    for (var i = 0; i < passi.length; i++) if (span / passi[i] <= 8) return passi[i];
+    return 336;
+  }
+
+  function grafico(s, P) {
+    var cont = el("grafico");
+    var tutti = [], i;
+    if (P.pre && P.pre.t !== null) tutti.push({ t: P.pre.t, v: P.pre.v, pre: true });
+    for (i = 0; i < P.pts.length; i++) if (P.pts[i].t !== null) tutti.push({ t: P.pts[i].t, v: P.pts[i].v, pre: false });
+    if (!tutti.length) return '<p class="why">Il grafico compare con il primo prelievo datato.</p>';
+    var W = Math.max(300, Math.min(888, (cont && cont.clientWidth) || 640)), H = W < 480 ? 230 : 260;
+    var ML = 44, MR = 14, MT = 24, MB = 36;
+    var rif, rifTx;
+    if (s.ctx === "proc" && s.tProc !== null) { rif = s.tProc; rifTx = "ore dalla fine della procedura"; }
+    else if (s.ctx !== "proc" && !s.onsetIgnoto && s.tOnset !== null) { rif = s.tOnset; rifTx = "ore dall'esordio dei sintomi"; }
+    else { rif = tutti[0].t; rifTx = "ore dal primo prelievo"; }
+    var hs = [], hmin = 0, hmax = 0;
+    for (i = 0; i < tutti.length; i++) { hs.push((tutti[i].t - rif) / ORA); if (hs[i] < hmin) hmin = hs[i]; if (hs[i] > hmax) hmax = hs[i]; }
+    if (hmax - hmin < 1) hmax = hmin + 1;
+    var st = scalaPassi(hmax - hmin);
+    hmin = Math.floor(hmin / st) * st; hmax = Math.ceil(hmax / st) * st;
+    var vmax = 0, vmin = null;
+    for (i = 0; i < tutti.length; i++) { if (tutti[i].v > vmax) vmax = tutti[i].v; if (vmin === null || tutti[i].v < vmin) vmin = tutti[i].v; }
+    var tetto = Math.max(vmax, s.url || 0, s.ctx === "spont" ? 52 : 0);
+    var log = s.scala === "log" || (s.scala === "" && vmax >= 10 * Math.max(s.url || 14, 1));
+    var ymin, ymax, yt = [];
+    if (log) {
+      ymin = 1; ymax = Math.pow(10, Math.ceil(Math.log(tetto * 1.15) / Math.LN10)); if (ymax < 100) ymax = 100;
+      for (var e10 = 1; e10 <= ymax; e10 *= 10) { yt.push(e10); if (e10 * 3 < ymax) yt.push(e10 * 3); }
+    } else {
+      ymin = 0;
+      var gr = [2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000, 10000, 20000, 50000], gs = gr[gr.length - 1];
+      for (i = 0; i < gr.length; i++) if (tetto * 1.15 / gr[i] <= 6) { gs = gr[i]; break; }
+      ymax = Math.ceil(tetto * 1.15 / gs) * gs;
+      for (var y = 0; y <= ymax + 1e-9; y += gs) yt.push(y);
+    }
+    function X(h) { return ML + (h - hmin) / (hmax - hmin) * (W - ML - MR); }
+    function Y(v) {
+      if (log) { var lv = Math.log(Math.max(v, 1)) / Math.LN10, lmax = Math.log(ymax) / Math.LN10; return MT + (1 - lv / lmax) * (H - MT - MB); }
+      return MT + (1 - (v - ymin) / (ymax - ymin)) * (H - MT - MB);
+    }
+    var o = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Andamento della hs-cTnT nel tempo">';
+    /* fasi della Fig. 10, dall'esordio */
+    if (rifTx === "ore dall'esordio dei sintomi") {
+      var bande = [[0, 3, "bandA", "A"], [3, 12, "bandB", "B"], [12, 24, "bandC", "C"]];
+      for (i = 0; i < bande.length; i++) {
+        var a = Math.max(bande[i][0], hmin), b = Math.min(bande[i][1], hmax);
+        if (b <= a) continue;
+        o += '<rect class="' + bande[i][2] + '" x="' + X(a).toFixed(1) + '" y="' + MT + '" width="' + (X(b) - X(a)).toFixed(1) + '" height="' + (H - MT - MB) + '"/>';
+        if (X(b) - X(a) > 14) o += '<text class="bl" x="' + ((X(a) + X(b)) / 2).toFixed(1) + '" y="' + (MT - 8) + '" text-anchor="middle">' + bande[i][3] + "</text>";
+      }
+    } else if (s.ctx === "proc" && s.ptipo === "chir" && rifTx === "ore dalla fine della procedura") {
+      var pa = Math.max(3, hmin), pb = Math.min(12, hmax), qa = Math.max(12, hmin), qb = Math.min(24, hmax);
+      if (pb > pa) { o += '<rect class="bandB" x="' + X(pa).toFixed(1) + '" y="' + MT + '" width="' + (X(pb) - X(pa)).toFixed(1) + '" height="' + (H - MT - MB) + '"/>'; if (X(pb) - X(pa) > 60) o += '<text class="bl" x="' + ((X(pa) + X(pb)) / 2).toFixed(1) + '" y="' + (MT - 8) + '" text-anchor="middle">picco atteso</text>'; }
+      if (qb > qa) { o += '<rect class="bandC" x="' + X(qa).toFixed(1) + '" y="' + MT + '" width="' + (X(qb) - X(qa)).toFixed(1) + '" height="' + (H - MT - MB) + '"/>'; if (X(qb) - X(qa) > 60) o += '<text class="bl" x="' + ((X(qa) + X(qb)) / 2).toFixed(1) + '" y="' + (MT - 8) + '" text-anchor="middle">picco tardivo</text>'; }
+    }
+    /* assi e griglia */
+    for (i = 0; i < yt.length; i++) {
+      var yy = Y(yt[i]);
+      o += '<line class="gl" x1="' + ML + '" x2="' + (W - MR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"/>';
+      o += '<text class="tk" x="' + (ML - 6) + '" y="' + (yy + 3.5).toFixed(1) + '" text-anchor="end">' + yt[i] + "</text>";
+    }
+    for (var hx = hmin; hx <= hmax + 1e-9; hx += st) {
+      var xx = X(hx);
+      o += '<line class="ax" x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + (H - MB) + '" y2="' + (H - MB + 4) + '"/>';
+      o += '<text class="tk" x="' + xx.toFixed(1) + '" y="' + (H - MB + 15) + '" text-anchor="middle">' + fmt(hx) + "</text>";
+    }
+    o += '<line class="ax" x1="' + ML + '" x2="' + (W - MR) + '" y1="' + (H - MB) + '" y2="' + (H - MB) + '"/>';
+    o += '<text class="tt" x="' + ((ML + W - MR) / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + rifTx + (log ? " · ng/L in scala logaritmica" : " · ng/L") + "</text>";
+    /* le etichette non si sovrappongono: ogni scritta prende il primo posto
+       libero fra i candidati, contro i punti e le scritte gia' messe */
+    var scatole = [];
+    for (i = 0; i < tutti.length; i++) { var qx = X(hs[i]), qy = Y(tutti[i].v); scatole.push([qx - 6, qy - 6, qx + 6, qy + 6]); }
+    function libera(b) {
+      if (b[0] < ML - 2 || b[2] > W - MR + 2 || b[1] < 2 || b[3] > H - MB) return false;
+      for (var z = 0; z < scatole.length; z++) { var c = scatole[z]; if (b[0] < c[2] && b[2] > c[0] && b[1] < c[3] && b[3] > c[1]) return false; }
+      return true;
+    }
+    function piazza(cand, testo, cls, cw) {
+      var w = testo.length * cw + 4, scelta = cand[0];
+      for (var z = 0; z < cand.length; z++) {
+        var c = cand[z], x0 = c[2] === "end" ? c[0] - w : (c[2] === "middle" ? c[0] - w / 2 : c[0]);
+        if (libera([x0, c[1] - 10, x0 + w, c[1] + 2])) { scelta = c; break; }
+      }
+      var sx0 = scelta[2] === "end" ? scelta[0] - w : (scelta[2] === "middle" ? scelta[0] - w / 2 : scelta[0]);
+      scatole.push([sx0, scelta[1] - 10, sx0 + w, scelta[1] + 2]);
+      return '<text class="' + cls + '" x="' + scelta[0].toFixed(1) + '" y="' + scelta[1].toFixed(1) + '" text-anchor="' + scelta[2] + '">' + testo + "</text>";
+    }
+    /* soglie */
+    var etich = "";
+    if (s.ctx === "spont") {
+      var y52 = Y(52);
+      o += '<line class="lne" x1="' + ML + '" x2="' + (W - MR) + '" y1="' + y52.toFixed(1) + '" y2="' + y52.toFixed(1) + '"/>';
+      etich += piazza([[W - MR - 2, y52 - 4, "end"], [W - MR - 2, y52 + 12, "end"], [ML + 4, y52 - 4, "start"], [ML + 4, y52 + 12, "start"]], "52 · alto ESC", "lnel", 6.2);
+    }
+    if (s.url) {
+      var yu = Y(s.url);
+      o += '<line class="lnu" x1="' + ML + '" x2="' + (W - MR) + '" y1="' + yu.toFixed(1) + '" y2="' + yu.toFixed(1) + '"/>';
+      etich += piazza([[W - MR - 2, yu - 4, "end"], [W - MR - 2, yu + 12, "end"], [ML + 4, yu - 4, "start"], [ML + 4, yu + 12, "start"]], "99° pc " + fmt(s.url), "lnul", 6.6);
+    }
+    /* la curva */
+    var d1 = "", dp = "";
+    for (i = 0; i < tutti.length; i++) {
+      var cx = X(hs[i]).toFixed(1), cy = Y(tutti[i].v).toFixed(1);
+      if (tutti[i].pre) continue;
+      d1 += (d1 ? " L" : "M") + cx + " " + cy;
+    }
+    if (P.pre && P.pre.t !== null && P.pts.length && P.pts[0].t !== null) dp = "M" + X(hs[0]).toFixed(1) + " " + Y(tutti[0].v).toFixed(1) + " L" + X(hs[1]).toFixed(1) + " " + Y(tutti[1].v).toFixed(1);
+    if (dp) o += '<path class="crvp" d="' + dp + '"/>';
+    if (d1) o += '<path class="crv" d="' + d1 + '"/>';
+    for (i = 0; i < tutti.length; i++) {
+      var px = X(hs[i]), py = Y(tutti[i].v);
+      var cls = tutti[i].pre ? "ptp" : (s.url !== null && tutti[i].v > s.url ? "pth" : "ptl");
+      o += '<circle class="' + cls + '" cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="5"/>';
+      etich += piazza([[px, py - 9, "middle"], [px, py + 18, "middle"], [px + 9, py + 4, "start"], [px - 9, py + 4, "end"],
+                       [px, py - 22, "middle"], [px, py + 31, "middle"]], fmt(tutti[i].v), "vl", 7.2);
+    }
+    return o + etich + "</svg>";
+  }
+
+  function testoConsulenza(s, P, alg, cur, ec, cl, cin) {
+    var L = [], i;
+    var paz = [];
+    if (s.sesso) paz.push(s.sesso === "f" ? "donna" : "uomo");
+    if (s.eta !== null) paz.push(s.eta + " anni");
+    L.push("Troponina T ad alta sensibilità (Elecsys)" + (s.url !== null ? ", 99° percentile " + fmt(s.url) + " ng/L" : "") + (paz.length ? " (" + paz.join(", ") + ")" : "") + ".");
+    var ctx = { spont: "esordio spontaneo, sospetta SCA", sec: "altra condizione acuta" + (s.cond.length ? " (" + s.cond.join(", ") + ")" : ""), proc: "dopo procedura cardiaca" + (s.ptipo ? " (" + el("ptipo").options[el("ptipo").selectedIndex].text + ")" : "") }[s.ctx];
+    if (ctx) L.push("Contesto: " + ctx + (s.ctx === "proc" && s.tProc !== null ? ", fine " + fmtDT(s.tProc) : "") + ".");
+    if (s.ctx !== "proc") L.push("Esordio dei sintomi: " + (s.onsetIgnoto || s.tOnset === null ? "non noto" : fmtDT(s.tOnset)) + ".");
+    var spec = [];
+    if (s.xReinf) spec.push("infarto nell'ultimo mese"); if (s.xHF) spec.push("scompenso"); if (s.xCKD) spec.push("malattia renale cronica");
+    if (s.xCrit) spec.push("paziente critico"); if (s.xNCS) spec.push("dopo chirurgia non cardiaca"); if (s.xOnco) spec.push("terapia oncologica");
+    if (spec.length) L.push("Situazioni speciali: " + spec.join(", ") + ".");
+    var pr = [];
+    if (P.pre) pr.push("pre-procedura" + (P.pre.t !== null ? " " + fmtDT(P.pre.t) : "") + " " + fmt(P.pre.v) + " ng/L");
+    for (i = 0; i < P.pts.length; i++) {
+      var p = P.pts[i], tx = (p.t !== null ? fmtDT(p.t) + " " : "") + fmt(p.v) + " ng/L";
+      if (i > 0 && p.t !== null && P.pts[i - 1].t !== null) tx += " (dopo " + durata((p.t - P.pts[i - 1].t) / MIN) + ", Δ " + segno(p.v - P.pts[i - 1].v) + ")";
+      var oh = oreDa(s, p.t);
+      if (oh !== null && i === 0) tx += " [" + fmt(oh) + " h " + (s.ctx === "proc" ? "dalla procedura" : "dall'esordio") + "]";
+      pr.push(tx);
+    }
+    if (pr.length) L.push("Prelievi: " + pr.join("; ") + ".");
+    if (cur.forma.andamento && P.pts.length > 1) L.push("Andamento: " + cur.forma.andamento + ", picco " + fmt(cur.forma.max) + " ng/L" + (s.url ? " (" + fmt(cur.forma.max / s.url) + "× l'URL)" : "") + ".");
+    if (ec.stato) {
+      var e = [];
+      if (ec.occl.length) e.push("reperti di occlusione: " + ec.occl.join("; "));
+      if (ec.isch.length) e.push(ec.isch.join("; "));
+      if (ec.q.length) e.push(ec.q.join("; "));
+      if (!e.length) e.push("nessuna alterazione ischemica");
+      var conf = [];
+      if (s.eBbsPre) conf.push("BBS noto"); if (s.eBbsNuovo) conf.push("BBS nuovo"); if (s.eBbdNuovo) conf.push("BBD nuovo"); if (s.eBbd) conf.push("BBD noto");
+      if (s.ePacing) conf.push("pacing ventricolare"); if (s.eIvs) conf.push("IVS");
+      L.push("ECG: " + (conf.length ? conf.join(", ") + "; " : "") + e.join("; ") + (ec.stato !== "nessuno" ? (s.eNuovo ? " — nuove o presunte nuove" : " — non dichiarate nuove") : "") + ".");
+    }
+    if (alg.p !== null) L.push("Algoritmo ESC " + (alg.alg === "0" ? "0 h" : "0 h/" + alg.alg + " h") + ": " + (alg.ritirato ? "rule-out ritirato, perché " + alg.ritirato + " — prima: " : "") + PERCORSO[alg.p] + " (" + alg.perche + ")" + (alg.oss ? "; prelievo a 3 h " + fmt(alg.oss.v) + " ng/L, Δ0/3 h " + fmt(alg.oss.d3) + (alg.oss.ok ? ": criteri della zona di osservazione soddisfatti" : ": criteri non soddisfatti") : "") + ".");
+    else if (s.ctx === "spont" && alg.attesa) L.push("Algoritmo ESC: " + alg.attesa + ".");
+    if (cur.testo) L.push("Lettura secondo la Quinta UDMI: " + cur.testo + (cur.perche ? " (" + cur.perche + ")" : "") + (cur.dinamica === "relativa" || (cur.dinamica === "procedura" && cur.base === "relativo") ? " — soglia del 20% dichiarata (Quarta UDMI), la Quinta non fissa un valore unico" : "") + (cur.dinamica === "giudizio" ? " — nessuna soglia validata per questo intervallo: dinamica giudicata clinicamente" : "") + ".");
+    if (s.ctx === "proc" && cin.picco !== null) L.push("Dopo la procedura: picco " + fmt(cin.picco) + " ng/L" + (cin.hPicco !== null ? " a " + fmt(cin.hPicco) + " h" : "") + (cin.multiplo !== null ? ", " + fmt(cin.multiplo) + "× l'URL" : "") + ".");
+    if (alg.applica && (alg.alg === "2" || alg.oss)) L.push("Finestre dei prelievi a 2 h (110–130 min) e a 3 h (170–190 min): lettura dello strumento, la fonte dà la tolleranza solo per il prelievo a 1 h (±10 min).");
+    if (cur.alto !== null) L.push("Valore massimo " + fmt(cur.alto) + "× il 99° percentile: valori così sono rari nel danno cronico (Quinta UDMI p. 27; la soglia di 5× è una lettura dello strumento).");
+    if (cl.liv) L.push("Classificazione: " + cl.cat + (/^infarto escluso/.test(cl.cat) ? "" : " — " + LIV[cl.liv][0]) + (cl.perche ? " (" + cl.perche + ")" : "") + ".");
+    else if (cl.attesa) L.push("Classificazione: in sospeso — " + cl.attesa + ".");
+    for (i = 0; i < cl.passi.length; i++) L.push("- " + piano(cl.passi[i][1]));
+    if (AVVISI.length) { L.push("Avvertenze:"); for (i = 0; i < AVVISI.length; i++) L.push("! " + AVVISI[i]); }
+    L.push("Riferimenti: Quinta Definizione Universale di Infarto Miocardico (2026); linee guida ESC 2023 sulle sindromi coronariche acute, Fig. 6 e Tab. S4.");
+    return L.join("\n");
+  }
+
+  function disegna() {
+    var s = S();
+    AVVISI = [];
+
+    /* passo 1 */
+    vedi("blkSec", s.ctx === "sec");
+    vedi("blkProc", s.ctx === "proc");
+    vedi("blkProb", s.ctx === "sec");
+    vedi("blkP3", s.ctx === "proc");
+    vedi("rigaC4", s.ctx === "proc");
+    vedi("cardGate", s.ctx === "spont");
+    vedi("rowPre", s.ctx === "proc");
+    vedi("rigaCompl", s.ctx === "proc");
+    vedi("gridX", s.eExtra);
+    vedi("blkSg", s.eBbsPre || s.eBbsNuovo || s.ePacing);
+    el("lblOnset").textContent = s.ctx === "proc" ? "Esordio dei sintomi, se ci sono" : "Esordio dei sintomi";
+    var un = el("urlNota");
+    if (s.sesso) un.innerHTML = "IFCC " + (s.sesso === "f" ? "donne" : "uomini") + ": " + fmt(URL99[s.sesso]) + ' ng/L <span class="integr">INTEGRAZIONE</span> · vale il valore del tuo laboratorio';
+    else un.textContent = "scegli il sesso: 9 ng/L nelle donne, 16 negli uomini (IFCC)";
+
+    /* passo 3 */
+    disegnaDerivazioni();
+    el("soglieEcg").innerHTML = "<strong>ST↑</strong>: al punto J, ≥1 mm; in V2–V3 ≥" + sogliaV23(s) + ". <strong>ST↓</strong>: ≥0,5 mm, orizzontale o discendente. <strong>T negativa</strong>: ≥1 mm. <strong>Q</strong>: ≥40 ms e/o ≥25% della R. Ogni reperto conta in <strong>due derivazioni contigue</strong>." + (s.eExtra ? " V7–V9 e V3R–V4R: ST↑ ≥0,5 mm (≥1 mm negli uomini sotto i 40 anni per le posteriori, sotto i 30 per le destre)." : "");
+    var ec = ecgLeggi(s), en = "";
+    var ecgK = { occl: "k2", isch: "k3", isolati: "k9", nessuno: "k0" }[ec.stato];
+    var ecgT = { occl: "reperti di occlusione coronarica acuta", isch: "alterazioni ischemiche", isolati: "nessun criterio ECG dai reperti segnati", nessuno: "nessun criterio ECG" }[ec.stato];
+    chip("ecgCat", ecgK, ecgT || "segna le derivazioni o dichiara l'ECG");
+    var ew = [];
+    for (var i = 0; i < ec.occl.length; i++) ew.push("• " + ec.occl[i]);
+    for (i = 0; i < ec.isch.length; i++) ew.push("• " + ec.isch[i]);
+    for (i = 0; i < ec.q.length; i++) ew.push("• " + ec.q[i]);
+    if (ec.stato === "isolati") ew.push(ec.secondari ? "ST↓ e T negative secondari al blocco di branca, al pacing o all'ipertrofia" : "i reperti segnati non stanno in due derivazioni contigue");
+    el("ecgWhy").innerHTML = ew.join("<br>");
+    if (ec.stato === "occl") en += nota("stop", "<strong>Occlusione coronarica acuta all'ECG:</strong> diagnosi di lavoro di STEMI o equivalente, con triage immediato per la riperfusione " + cor("I A") + ". La troponina <strong>non si aspetta</strong>: nelle prime ore è sotto il 99° percentile in circa 1 paziente su 6, perché il territorio infartuato non è perfuso.", "ESC 2023 p. 3739 · UDMI5 Fig. 2 note a–b, p. 11 · p. 25");
+    for (i = 0; i < ec.note.length; i++) en += nota(ec.note[i][0], ec.note[i][1], ec.note[i][2]);
+    if ((ec.stato === "occl" || ec.isch.length) && !s.eNuovo) en += nota("", "Entrano nei criteri dell'infarto se sono <strong>nuove o presunte nuove</strong>: spuntalo, se lo sono. Il confronto con un ECG precedente aiuta.", "Box 3–5 · ESC 2023 S p. 7");
+    if (ec.q.length && !s.eQnuove) en += nota("", "Le onde Q contano come criterio se sono <strong>comparse</strong>: possono regredire in mesi o anni, ma di solito restano.", "Box 3 · p. 23");
+    if (s.ctx === "proc" && s.ptipo === "chir" && (ec.stato === "occl" || ec.isch.length || ec.q.length)) en += nota("info", "<strong>Dopo cardiochirurgia</strong> ST e T alterati sono frequenti per pericardite, pneumopericardio o squilibri elettrolitici, e onde Q patologiche possono essere transitorie: le alterazioni chiedono una valutazione, ma da sole non bastano. Servono presto imaging e coronarografia.", "pp. 16, 23");
+    else if (s.ctx === "proc" && ec.stato) en += nota("info", "Dopo una procedura percutanea il <strong>confronto con l'ECG pre-procedura</strong> aiuta: la trombosi precoce di stent dà di solito il sopraslivellamento classico, l'occlusione di un ramo collaterale alterazioni sottili o nessuna.", "p. 23");
+    if (s.ctx === "sec" && (ec.stato === "occl" || ec.isch.length)) en += nota("info", "Nell'IM secondario sono più comuni le alterazioni <strong>globali</strong>. Se le alterazioni marcate, sopra o sotto, <strong>non si risolvono</strong> trattando la causa — per esempio il sottoslivellamento diffuso dopo la cardioversione di una tachiaritmia — va riconsiderato l'IM <strong>primario</strong>.", "p. 23");
+    if (s.xCrit && ec.stato) en += nota("", "Nel paziente critico lo ST↑ è frequente e meno specifico per l'IM primario.", "p. 32");
+    if (s.xReinf && ec.stato) en += nota("", "Entro un mese da un infarto, ST↑ persistente o T negative possono essere residui, da aneurisma o pericardite.", "p. 31");
+    el("ecgNote").innerHTML = en;
+
+    /* passo 4 */
+    var P = prelievi(s), pn = "";
+    if (P.senzaOra.length) pn += nota("stop", "Prelievo " + P.senzaOra.join(", ") + ": <strong>manca la data e l'ora</strong>, ed è stato lasciato fuori. Con più di un prelievo servono tutte.", "");
+    if (P.doppi) pn += nota("", "Due prelievi hanno la <strong>stessa ora</strong>: controlla.", "");
+    if (P.prima.length) pn += nota("", "Prelievo " + P.prima.join(", ") + ": è <strong>prima della fine della procedura</strong>, ed è stato lasciato fuori dalla curva. Se è il valore pre-procedura, mettilo nella riga apposita.", "");
+    if (s.ctx === "proc" && P.pre && P.pre.t !== null && s.tProc !== null && P.pre.t > s.tProc) pn += nota("", "Il valore pre-procedura ha un'ora <strong>dopo</strong> la fine della procedura: controlla.", "");
+    if (s.ctx !== "proc" && !s.onsetIgnoto && s.tOnset !== null && P.pts.length && P.pts[0].t !== null && P.pts[0].t < s.tOnset && !s.xNCS) pn += nota("", "Il primo prelievo è <strong>prima dell'esordio</strong> dei sintomi: controlla le date.", "");
+    el("prelNote").innerHTML = pn;
+    el("grafico").innerHTML = grafico(s, P);
+
+    /* passo 5 */
+    var alg = algoritmo(s, P, ec), an = "", ap = "";
+    var serie = s.f2 || s.f3;
+    if (alg.p === null) { el("escVal").textContent = "—"; chip("escCat", null, alg.attesa || "—"); el("escWhy").textContent = ""; }
+    else if (alg.ritirato) { el("escVal").textContent = "rule-out ritirato"; chip("escCat", "k2", "il rule-out non regge"); el("escWhy").textContent = alg.perche + "; poi " + alg.ritirato; }
+    else { el("escVal").textContent = PERCORSO[alg.p]; chip("escCat", ["k0", "k1", "k2"][alg.p], "percorso " + PERCORSO[alg.p] + (alg.alg && alg.alg !== "0" ? " · 0 h/" + alg.alg + " h" : " · al prelievo 0 h")); el("escWhy").textContent = alg.perche; }
+    el("escSoglie").innerHTML = alg.applica ? "hs-cTnT Elecsys · 0 h/1 h: molto basso &lt;5 · basso &lt;12 · nessun Δ1 h &lt;3 · alto ≥52 · Δ1 h ≥5 — 0 h/2 h: &lt;5 · &lt;14 · Δ2 h &lt;4 · ≥52 · Δ2 h ≥10 ng/L · Tab. S4, S p. 12 · il prelievo a 1 h vale fra 50 e 70 min (S p. 13), quello a 2 h fra 110 e 130 e quello a 3 h fra 170 e 190" + lettStr() : "";
+    if (alg.stop) an += nota("stop", "Con l'ECG di occlusione l'algoritmo <strong>non si usa</strong>: si applica dopo aver escluso lo STEMI.", "Fig. 6, p. 3741 · S p. 12");
+    if (s.ctx === "sec") an += nota("info", "Gli algoritmi rapidi sono per il <strong>sospetto di SCA</strong>, non per una popolazione non selezionata — non nel paziente con ictus o sepsi. Qui la curva si legge con la definizione, al passo 6.", "S p. 12, avvertenza ii");
+    if (s.ctx === "proc") an += nota("info", "Dopo una procedura l'algoritmo non si applica: la curva si legge con la definizione e con la cinetica della procedura, al passo 6.", "Fig. 6 UDMI5, p. 17");
+    for (i = 0; i < alg.note.length; i++) {
+      if (alg.note[i] === "discesa") an += nota("", "<strong>La troponina scende di quanto basterebbe per un rule-in.</strong> La Fig. 6 parla di aumento; una discesa di pari entità è comunque un «fall», che nella definizione conta come la salita. Non consente il rule-out: è osservazione, da giudicare con la clinica.", "Fig. 6, p. 3741 · UDMI5 p. 8");
+      else an += nota("info", alg.note[i], "S p. 12");
+    }
+    if (alg.p === 0 && alg.ritirato) {
+      an += nota("stop", "<strong>Il rule-out non regge:</strong> " + alg.ritirato + ". Incrementi tardivi si vedono in circa l'1% dei pazienti: niente dimissione su questo esito, la curva si legge al passo 6.", "S p. 12, avvertenza iv · Fig. 6, p. 3741");
+    } else if (alg.p === 0) {
+      if (serie) an += nota("stop", "<strong>Non fermarti al rule-out.</strong> Con dolore in corso o ricorrente, o con sospetto clinico che resta alto, i prelievi seriati <strong>proseguono</strong>: incrementi tardivi si vedono in circa l'1% dei pazienti.", "S p. 12 · UDMI5 Box 6");
+      if (s.f1) an += nota("stop", "<strong>Quadro in crescendo o angina instabile evidente:</strong> servono altre indagini, anche con il rule-out.", "S p. 12");
+      ap += passo("→", "Valore predittivo negativo per IM <strong>oltre il 99%</strong> nelle coorti di validazione; eventi a 30 giorni molto rari.", "p. 3740");
+      ap += passo("→", "Con clinica ed ECG identifica i candidati a <strong>dimissione precoce</strong> e gestione ambulatoriale — ma il rule-out non equivale sempre a dimissione.", "p. 3740");
+      ap += passo("·", "Anche escluso l'IM può servire un imaging elettivo, non invasivo o invasivo; va cercata una <strong>diagnosi alternativa</strong>.", "p. 3740");
+      if (alg.es !== "oltre" && alg.alg !== "0") ap += passo("↺", "Esordio recente o non noto: in chi arriva <strong>molto presto</strong> e va verso il rule-out, considerare un prelievo in più <strong>a 3 h</strong>.", "S p. 12");
+    } else if (alg.p === 1) {
+      ap += passo("→", "<strong>Terzo prelievo a 3 h</strong>, ± ecocardiogramma, se i primi due sono inconclusivi e nessuna diagnosi alternativa spiega il quadro " + cor("I B"), "pp. 3739–3740");
+      if (alg.oss) ap += passo(alg.oss.ok ? "✓" : "!", alg.oss.ok ? "<strong>A 3 h: " + fmt(alg.oss.v) + " ng/L, Δ0/3 h " + fmt(alg.oss.d3) + "</strong> — sotto 15 e sotto 4: combinazione validata con sicurezza ed efficacia <strong>accettabili</strong> per le decisioni successive." : "<strong>A 3 h: " + fmt(alg.oss.v) + " ng/L, Δ0/3 h " + fmt(alg.oss.d3) + "</strong> — servono &lt;15 e &lt;4: il sospetto resta, e una salita rilevante porta di solito alla coronarografia.", "S p. 12 · p. 3740");
+      else ap += passo("·", "Nessun prelievo fra 170 e 190 min dal primo: il criterio della zona di osservazione (3 h &lt;15 ng/L e Δ0/3 h &lt;4) non si può leggere.", "S p. 12");
+      ap += passo("!", "Gruppo eterogeneo, con <strong>mortalità paragonabile al rule-in</strong>: conta la valutazione individuale del rischio.", "p. 3740");
+      ap += passo("·", "Sospetto alto → per lo più <strong>coronarografia</strong>; probabilità bassa-intermedia → per lo più <strong>imaging non invasivo</strong>, anche la TC coronarica. Se una condizione alternativa spiega i valori (FA ad alta risposta, anemia marcata, emergenza ipertensiva), altre indagini possono non servire.", "p. 3740");
+      if (s.f1) an += nota("stop", "<strong>Quadro in crescendo o angina instabile evidente:</strong> servono altre indagini.", "S p. 12");
+    } else if (alg.p === 2) {
+      ap += passo("→", "Valore predittivo positivo per IM <strong>~70–75%</strong>: il rule-in <strong>non è la diagnosi</strong> di infarto.", "p. 3740");
+      ap += passo("→", "Quasi tutti richiedono <strong>ricovero e coronarografia</strong>; chi non ha un IM ha di solito comunque una condizione che chiede il cardiologo e un imaging.", "p. 3740");
+    }
+    if (alg.p !== null) ap += passo("·", "L'algoritmo si integra <strong>sempre</strong> con la valutazione clinica e l'ECG a 12 derivazioni; le soglie sono uguali per sesso, età e rene, e smistano: non definiscono il danno.", "p. 3740 · S p. 12 · UDMI5 p. 27");
+    el("escNote").innerHTML = an;
+    el("escPassi").innerHTML = ap;
+
+    /* passo 6 */
+    var cur = lettura(s, P, alg, ec), cn = "";
+    el("curVal").textContent = cur.k === null ? "—" : ({ acuto: "danno acuto", cronico: "danno cronico", assente: "nessun danno" }[cur.tn] || "in sospeso");
+    chip("curCat", cur.k === null ? null : "k" + cur.k, cur.testo || "—");
+    el("curWhy").textContent = cur.perche;
+    vedi("rigaGiud", cur.chiedi);
+    if (cur.dinamica === "validata") cn += nota("stop dato", "<strong>Rise and/or fall con almeno un valore sopra il 99° percentile</strong>: è la definizione di danno miocardico acuto. Qui il segnale è il Δ validato del saggio; la definizione non fissa un valore unico, e resta il giudizio clinico.", "UDMI5 Box 1, p. 8 · p. 26");
+    if (cur.dinamica === "relativa") cn += nota("stop dato", "<strong>Variazione oltre il 20% sul primo prelievo, già sopra l'URL.</strong> Il 20% è la soglia della Quarta UDMI per il basale elevato (gruppo di consenso); la Quinta dice solo che per valori chiaramente alti il Δ relativo è «più intuitivo», e che nessun valore unico vale per tutti." + lettStr(), "UDMI4 p. 255 · UDMI5 pp. 26–27");
+    if (cur.dinamica === "procedura") cn += nota("stop dato", "<strong>Danno acuto dopo la procedura:</strong> troponina in salita, con almeno un valore sopra il 99° percentile e sopra il valore pre-procedura, se noto." + (cur.base === "relativo" ? " Con il basale già sopra l'URL la salita richiesta è oltre il 20%, come nella Quarta UDMI." + lettStr() : ""), "Fig. 6 nota a, p. 17" + (cur.base === "relativo" ? " · UDMI4 p. 250" : ""));
+    if (cur.dinamica === "giudizio") cn += nota("", "<strong>Danno acuto per giudizio clinico</strong>: nessuna soglia validata decideva questo andamento. Nel testo per la consulenza è scritto così.", "p. 26");
+    if (cur.tn === "acuto") cn += nota("info", "<strong>Danno acuto non vuol dire infarto.</strong> Serve almeno un criterio clinico o ECG, e la conferma con l'imaging coronarico o cardiaco: passi 7 e 8.", "Box 3–5");
+    if (cur.tn === "cronico") cn += nota("", "Variazione entro il 20%: il danno è più probabilmente <strong>cronico e stabile</strong> che progressivo. È un criterio <strong>analitico</strong>, basato solo sull'imprecisione del saggio.", "UDMI5 p. 9");
+    if (cur.k === 1 && !s.stabile && s.ctx !== "proc") cn += nota("stop", "<strong>Paziente non dichiarato stabile:</strong> in acuto la priorità è escludere danno acuto o infarto; valori stabili possono essere il <strong>picco</strong> o la <strong>coda</strong> di un infarto recente.", "UDMI5 pp. 9, 27");
+    if (cur.alto !== null && cur.tn !== "acuto") cn += nota("info", "Valore molto alto (" + fmt(cur.alto) + "× il 99° percentile): valori così si vedono raramente nel danno cronico, e la dimostrazione del rise and/or fall <strong>può non servire</strong>. La fonte non dà un numero: il 5× è una lettura dello strumento, e decide la tua casella." + lettStr(), "p. 27");
+    if (cur.forma.zigzag) cn += nota("stop", "<strong>Valori che salgono e scendono senza un pattern:</strong> sospetta un'<strong>interferenza analitica</strong> (anticorpi eterofili, macrotroponina). Ripeti su un nuovo campione e, se puoi, con un saggio diverso: una discordanza fra troponina I e T è fortemente suggestiva." + lettStr(), "Box 6 · p. 25");
+    /* la fase */
+    if (s.ctx !== "proc" && P.pts.length) {
+      var hon = [];
+      for (i = 0; i < P.pts.length; i++) hon.push(oreDa(s, P.pts[i].t));
+      if (hon[0] === null) cn += nota("", "<strong>Esordio non noto:</strong> la fase della curva non si stima, e un Δ piatto non distingue il picco o la coda di un infarto dal danno cronico.", "p. 27");
+      else {
+        var tuttiC = true;
+        for (i = 0; i < hon.length; i++) if (hon[i] === null || hon[i] < 12 || hon[i] > 24) tuttiC = false;
+        if (hon[0] < 3 && cur.tn !== "acuto") cn += nota("info", "<strong>Fase A</strong> (" + fmt(hon[0]) + " h dall'esordio): le variazioni assolute sono piccole, e l'aumento può non vedersi nemmeno con i saggi ad alta sensibilità. Servono prelievi seriati.", "Fig. 10, p. 26 · Box 6");
+        if (tuttiC && cur.k === 1) cn += nota("stop", "<strong>Tutti i prelievi fra 12 e 24 h dall'esordio (fase C):</strong> attorno al picco il Δ può essere minimo. Un andamento piatto qui <strong>non</strong> dice danno cronico.", "p. 27");
+        if (hon[0] > 24 && (cur.k === 1 || cur.forma.andamento === "in discesa")) cn += nota("", "<strong>Presentazione tardiva</strong> (" + fmt(hon[0]) + " h dall'esordio): dopo il picco la curva scende, e a giorni dall'esordio <strong>mima il danno cronico</strong>. Distinguere il danno residuo di un infarto recente conta; la troponina può impiegare settimane a tornare normale.", "Fig. 10 D–F, p. 26 · p. 27");
+      }
+    }
+    var cin = cineticaProc(s, P);
+    if (s.ctx === "proc" && cin.picco !== null) {
+      var cp = "Picco dopo la procedura: <strong>" + fmt(cin.picco) + " ng/L</strong>" + (cin.hPicco !== null ? " a " + fmt(cin.hPicco) + " h" : "") + (cin.multiplo !== null ? ", " + fmt(cin.multiplo) + "× l'URL" : "") + ".";
+      if (cin.sale6 !== null) cp += " Ancora in salita a 6 h o oltre: <strong>" + (cin.sale6 ? "sì" : "no") + "</strong>.";
+      if (s.ptipo === "chir") {
+        cp += " Dopo cardiochirurgia la troponina sale in tutti — oltre 10× l'URL nel 97,5% — con il picco di solito <strong>fra 3 e 12 h</strong>; un picco <strong>fra 12 e 24 h</strong> può indicare una complicanza, e una salita fra 6 e 24 h è più frequente in chi ha nuova perdita di miocardio vitale alla RM.";
+        if (cin.hPicco !== null && cin.hPicco >= 12 && cin.hPicco <= 24) cp += " <strong>Qui il picco cade fra 12 e 24 h.</strong>";
+        cn += nota(cin.hPicco !== null && cin.hPicco >= 12 && cin.hPicco <= 24 ? "stop" : "info", cp, "pp. 18, 25–26");
+      } else {
+        cp += " Dopo PCI in una sindrome coronarica cronica la troponina supera l'URL in 1 paziente su 2, con il picco a 12–24 h nella maggioranza; con ischemia o complicanza evidente servono il basale e un prelievo a 12–24 h dall'evento.";
+        cn += nota("info", cp, "p. 26");
+      }
+      cn += nota("", "<strong>Esempi della fonte, non soglie:</strong> subito dopo la procedura la diagnosi è più probabile con valori più alti, saliti dal pre-procedura e ancora in salita a 6 h (per esempio oltre 5× l'URL dopo un intervento percutaneo) e a 24 h (oltre 35× dopo chirurgia). Valori sotto quelle soglie rendono meno probabile una nuova anomalia della cinetica, ma la loro sensibilità è ignota.", "Box 5 p. 16 · Fig. 6 nota b, p. 17 · p. 18");
+    }
+    for (i = 0; i < cur.note.length; i++) cn += nota(cur.note[i][0], cur.note[i][1], cur.note[i][2]);
+    el("curNote").innerHTML = cn;
+    el("tabella").innerHTML = tabella(s, P, cur);
+
+    /* passo 7 */
+    var procVero = s.ctx === "proc" && !(cin.giorni !== null && cin.giorni > 30) && !s.pNonCorr;
+    vedi("rigaAngio", !procVero);
+    vedi("rigaCompl", procVero);
+    el("imgProc").innerHTML = procVero ? "Per l'IM procedura-correlato l'anomalia deve stare nel <strong>territorio della coronaria</strong> in cui è nata la complicanza." + pg("Box 5 p. 16") : "";
+
+    /* passo 8 */
+    var cl = classifica(s, cur, ec, cin);
+    el("oCat").textContent = cl.liv === null ? "—" : cl.cat;
+    if (cl.liv === null) chip("oLiv", null, cl.attesa || "—"); else chip("oLiv", LIV[cl.liv][1], LIV[cl.liv][0]);
+    var sc = "";
+    for (i = 0; i < cl.scala.length; i++) sc += '<span class="' + (cl.liv === cl.scala[i] ? "on " + LIV[cl.scala[i]][1] : "") + '">' + cl.scala[i] + "</span>";
+    el("oScala").innerHTML = sc;
+    var on = cl.perche ? '<p class="why" style="margin-top:8px">' + cl.perche + "</p>" : "";
+    for (i = 0; i < cl.note.length; i++) on += nota(cl.note[i][0], cl.note[i][1], cl.note[i][2]);
+    el("oNote").innerHTML = on;
+    var op = "";
+    for (i = 0; i < cl.passi.length; i++) op += passo(cl.passi[i][0], cl.passi[i][1], cl.passi[i][2]);
+    el("oPassi").innerHTML = op;
+    var sp = speciali(s, cur, P), spx = "";
+    for (i = 0; i < sp.length; i++) spx += nota(sp[i][0], sp[i][1], sp[i][2]);
+    el("oSpec").innerHTML = spx;
+
+    /* passo 9 */
+    el("txt").value = testoConsulenza(s, P, alg, cur, ec, cl, cin);
+    el("copiaEsito").textContent = "";
+
+    /* limiti */
+    var lim = [];
+    lim.push("Un solo saggio: la <strong>hs-cTnT Elecsys</strong>. Soglie e Δ assoluti sono propri del saggio e non si trasferiscono a un altro." + pg("UDMI5 p. 27 · S p. 12"));
+    lim.push("Le soglie dell'algoritmo <strong>smistano</strong> il rischio, uguali per sesso, età e rene; il danno si definisce col 99° percentile per sesso." + pg("UDMI5 p. 27"));
+    lim.push("Il 99° percentile proposto (9 e 16 ng/L) è quello <strong>dichiarato dal produttore</strong> nelle tabelle IFCC: vale il valore del tuo laboratorio.");
+    lim.push("Le finestre a 2 h (110–130 min) e a 3 h (170–190 min) sono la tolleranza del prelievo a 1 h estesa per analogia: la fonte non la dà." + lettStr());
+    lim.push("Con il primo prelievo sopra l'URL il Δ% si calcola <strong>fra due prelievi qualsiasi</strong>, sul primo dei due; il 20% è la soglia della Quarta UDMI per il basale elevato, che la Quinta non fissa." + lettStr() + pg("UDMI4 p. 255 · UDMI5 pp. 9, 26"));
+    lim.push("«Cronico» chiede almeno due valori sopra l'URL su una serie di almeno 3 h, in clinica stabile, senza il Δ validato e senza un rule-in o un'osservazione aperta dell'algoritmo; dopo una procedura «nessun danno» chiede un prelievo ad almeno 12 h." + lettStr() + pg("UDMI5 pp. 9, 25–26"));
+    lim.push("Il tool non legge il tracciato: si fida dei reperti che segni. Contiguità come in Wagner 2009; aVR si legge a parte.");
+    lim.push("Le fasi della curva vengono dalla Fig. 10, che è uno schema: dopo le 24 h la fonte non dà confini in ore." + pg("p. 26"));
+    if (s.ctx === "sec") lim.push("Il Box 4 non dà soglie per lo squilibrio: quanto contano l'anemia, l'ipotensione o la tachicardia lo decide il medico." + pg("p. 15"));
+    if (s.ctx === "proc") lim.push("5 e 35 volte l'URL sono esempi, non soglie diagnostiche: gli URL dei saggi non sono equivalenti fra loro." + pg("pp. 10, 18"));
+    el("limiti").innerHTML = "<li>" + lim.join("</li><li>") + "</li>";
+
+    /* barra */
+    chip("barCurva", cur.k === null ? null : "k" + cur.k, cur.k === null ? "—" : cur.testo);
+    chip("barEcg", ecgK, ecgT || "—");
+    chip("barCat", cl.liv === null ? null : LIV[cl.liv][1], cl.liv === null ? "—" : cl.cat + " · " + LIV[cl.liv][0]);
+    return { s: s, P: P, alg: alg, cur: cur, ec: ec, cl: cl };
+  }
+
+  /* ═══ COMANDI ═══════════════════════════════════════════════════════ */
+  function formatta(t) {
+    var d = new Date(t);
+    if (NATIVO) return d.getFullYear() + "-" + due(d.getMonth() + 1) + "-" + due(d.getDate()) + "T" + due(d.getHours()) + ":" + due(d.getMinutes());
+    return due(d.getDate()) + "/" + due(d.getMonth() + 1) + "/" + d.getFullYear() + " " + due(d.getHours()) + ":" + due(d.getMinutes());
+  }
+  if (!NATIVO) {
+    var dts = document.querySelectorAll("input.dt");
+    for (var q = 0; q < dts.length; q++) { dts[q].setAttribute("type", "text"); dts[q].setAttribute("placeholder", "gg/mm/aaaa hh:mm"); }
+  }
+  var cont = document.querySelectorAll(".pqs");
+  for (var c = 0; c < cont.length; c++) {
+    var r = cont[c].getAttribute("data-r"), hh = [1, 2, 3, 6, 12], html = "";
+    for (var k = 0; k < hh.length; k++) html += '<button type="button" class="pq" data-r="' + r + '" data-h="' + hh[k] + '">+' + hh[k] + " h</button>";
+    cont[c].innerHTML = html;
+  }
+
+  document.addEventListener("input", function (ev) {
+    if (ev.target && ev.target.id === "url") urlManuale = el("url").value !== "";
+    disegna();
+  });
+  document.addEventListener("change", function (ev) {
+    if (ev.target && ev.target.name === "sesso" && !urlManuale) el("url").value = String(URL99[ev.target.value]);
+    disegna();
+  });
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    while (t && t !== document && !(t.className && /\b(ld|pq)\b/.test(t.className))) t = t.parentNode;
+    if (!t || t === document) return;
+    if (/\bld\b/.test(t.className)) {
+      var d = t.getAttribute("data-ld"), m = radio("modo") || "su";
+      if (!LD[d]) LD[d] = {};
+      LD[d][m] = !LD[d][m];
+      disegna();
+    } else {
+      var riga = +t.getAttribute("data-r"), ore = +t.getAttribute("data-h"), base = null;
+      for (var j = riga - 1; j >= 1 && base === null; j--) base = ora("t" + j);
+      if (base === null) { el("prelNote").innerHTML = nota("", "Per «+" + ore + " h» serve l'ora di un prelievo precedente.", ""); return; }
+      el("t" + riga).value = formatta(base + ore * ORA);
+      disegna();
+    }
+  });
+  el("copia").addEventListener("click", function () {
+    var t = el("txt"), esito = el("copiaEsito");
+    function aMano() {
+      t.removeAttribute("readonly"); t.focus(); t.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      t.setAttribute("readonly", "readonly");
+      esito.textContent = ok ? "copiato" : "selezionato: copialo a mano";
+    }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t.value).then(function () { esito.textContent = "copiato"; }, aMano);
+    else aMano();
+  });
+  el("azzera").addEventListener("click", function () {
+    var ins = document.querySelectorAll("input, select");
+    for (var i = 0; i < ins.length; i++) {
+      if (ins[i].type === "checkbox" || ins[i].type === "radio") ins[i].checked = false;
+      else ins[i].value = "";
+    }
+    document.querySelector('input[name="modo"][value="su"]').checked = true;
+    document.querySelector('input[name="scala"][value=""]').checked = true;
+    LD = {}; urlManuale = false;
+    disegna();
+    window.scrollTo(0, 0);
+  });
+  var attesa = null;
+  window.addEventListener("resize", function () { if (attesa) clearTimeout(attesa); attesa = setTimeout(disegna, 150); });
+
+  window.CT_MOTORE = { S4: S4, OSS: OSS, FIN: FIN, URL99: URL99, REL: REL, ALTO: ALTO, CONTIGUE: CONTIGUE,
+                       leggiOra: leggiOra, fase: fase, forma: forma, inFin: inFin, disegna: disegna };
+  disegna();
+})();
+</script>
+<script data-iphone="web">
+// Solo da un indirizzo https, cioe' dalla pagina pubblicata: aperto come file
+// il tool non cerca ne' manifest ne' service worker, che accanto al file non
+// ci sono. Un errore qui non deve fermare niente: e' un di piu'.
+(function(){
+if(location.protocol!=="https:") return;
+try{
+  var t=document.getElementsByTagName("head")[0];
+  var m=document.createElement("link"); m.rel="manifest"; m.href="manifest.webmanifest";
+  var i=document.createElement("link"); i.rel="apple-touch-icon"; i.href="icona-180.png";
+  t.appendChild(m); t.appendChild(i);
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js")["catch"](function(){});
+}catch(e){}
+})();
+</script>
+<script data-iphone="fine">document.documentElement.className+=" motore-ok";</script>
+</body>
+</html>
