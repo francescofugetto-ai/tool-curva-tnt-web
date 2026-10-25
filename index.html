@@ -690,7 +690,7 @@ html.js.motore-ko #nomotore{display:block}
   /* ═══ FUNZIONI PURE ══════════════════════════════════════════════════ */
   function fmt(v) { return String(Math.round(v * 10) / 10).replace(".", ","); }
   function segno(v) { return (v > 0 ? "+" : (v < 0 ? "−" : "")) + fmt(Math.abs(v)); }
-  function pc(r) { return (r > 0 ? "+" : (r < 0 ? "−" : "")) + Math.round(Math.abs(r) * 100) + "%"; }
+  function pc(r) { if (!isFinite(r)) return "da zero"; return (r > 0 ? "+" : (r < 0 ? "−" : "")) + Math.round(Math.abs(r) * 100) + "%"; }
   function due(n) { return (n < 10 ? "0" : "") + n; }
   function fmtDT(t) { var d = new Date(t); return due(d.getDate()) + "/" + due(d.getMonth() + 1) + " " + due(d.getHours()) + ":" + due(d.getMinutes()); }
   function durata(min) {
@@ -702,6 +702,10 @@ html.js.motore-ko #nomotore{display:block}
     return (neg ? "−" : "") + s;
   }
   function inFin(m, k) { return m >= FIN[k][0] && m <= FIN[k][1]; }
+  /* differenze e rapporti arrotondati: 8,2 − 2,2 deve fare 6, non 5,999999…,
+     o un bordo esatto cade dal lato sbagliato (ricontrollo del 25/10/2026) */
+  function dif(a, b) { return Math.round((b - a) * 1000) / 1000; }
+  function var_(a, b) { return a > 0 ? Math.round((b - a) / a * 10000) / 10000 : (b > 0 ? Infinity : 0); }
 
   /* Data e ora: il valore del campo nativo (aaaa-mm-ggThh:mm) o, dove il
      browser non ha il campo, «gg/mm/aaaa hh:mm» o «gg/mm hh:mm». */
@@ -794,7 +798,7 @@ html.js.motore-ko #nomotore{display:block}
     if (r.j >= 0) {
       r.alg = i1 >= 0 ? "1" : "2";
       t = S4[r.alg]; lo = t[1]; nod = t[2]; d = t[4];
-      r.delta = pts[r.j].v - c0;
+      r.delta = dif(c0, pts[r.j].v);
       if (r.delta >= d) { r.p = 2; r.perche = "aumento di " + fmt(r.delta) + " ng/L in " + r.alg + " h (≥ " + d + ")"; }
     }
     if (r.p === null && c0 < T1[0] && r.es === "oltre") { r.p = 0; r.alg = "0"; r.perche = "0 h < " + T1[0] + " ng/L e dolore da più di 3 h: valore iniziale molto basso"; }
@@ -814,7 +818,7 @@ html.js.motore-ko #nomotore{display:block}
     if (r.p === 0) {
       for (i = (r.alg === "0" ? 1 : r.j + 1); i < pts.length; i++) {
         if (pts[i].t === null || t0 === null) continue;
-        var mm = (pts[i].t - t0) / MIN, dd = pts[i].v - c0;
+        var mm = (pts[i].t - t0) / MIN, dd = dif(c0, pts[i].v);
         if (s.url !== null && pts[i].v > s.url) { r.ritirato = "il prelievo " + pts[i].n + " supera il 99° percentile (" + fmt(pts[i].v) + " ng/L)"; break; }
         if (inFin(mm, "1") && dd >= S4["1"][4]) { r.ritirato = "a 1 h l'aumento è di " + fmt(dd) + " ng/L (≥ " + S4["1"][4] + ")"; break; }
         if (inFin(mm, "2") && dd >= S4["2"][4]) { r.ritirato = "a 2 h l'aumento è di " + fmt(dd) + " ng/L (≥ " + S4["2"][4] + ")"; break; }
@@ -824,7 +828,7 @@ html.js.motore-ko #nomotore{display:block}
       for (i = r.j + 1; i < pts.length; i++) {
         if (pts[i].t !== null && inFin((pts[i].t - t0) / MIN, "3")) { r.k3 = i; break; }
       }
-      if (r.k3 >= 0) { var d3 = Math.abs(pts[r.k3].v - c0); r.oss = { v: pts[r.k3].v, d3: d3, ok: pts[r.k3].v < OSS.c3 && d3 < OSS.d }; }
+      if (r.k3 >= 0) { var d3 = Math.abs(dif(c0, pts[r.k3].v)); r.oss = { v: pts[r.k3].v, d3: d3, ok: pts[r.k3].v < OSS.c3 && d3 < OSS.d }; }
     }
     return r;
   }
@@ -929,7 +933,7 @@ html.js.motore-ko #nomotore{display:block}
     for (i = 1; i < n; i++) {
       if (pts[0].t === null || pts[i].t === null) continue;
       var m = (pts[i].t - pts[0].t) / MIN, h = inFin(m, "1") ? "1" : (inFin(m, "2") ? "2" : "");
-      var dd = pts[i].v - v0;
+      var dd = dif(v0, pts[i].v);
       if (h) { if (Math.abs(dd) >= S4[h][4]) { if (!val) val = { i: i, h: h, d: dd }; } else sotto.push(h); }
       else if (dd !== 0) fuori = true;
     }
@@ -956,8 +960,7 @@ html.js.motore-ko #nomotore{display:block}
     r.base = "relativo";
     var rel = 0, ra = 0, rb = 0;
     for (i = 0; i < n - 1; i++) for (j = i + 1; j < n; j++) {
-      if (pts[i].v <= 0) continue;
-      var x = (pts[j].v - pts[i].v) / pts[i].v;
+      var x = var_(pts[i].v, pts[j].v);
       if (Math.abs(x) > Math.abs(rel)) { rel = x; ra = i; rb = j; }
     }
     r.rel = rel;
@@ -1011,7 +1014,7 @@ html.js.motore-ko #nomotore{display:block}
         r.perche = "pre-procedura " + fmt(pre.v) + " ng/L (≤ URL), dopo fino a " + fmt(max) + " ng/L: sopra il 99° percentile e sopra il valore pre-procedura";
         return r;
       }
-      var rp = (max - pre.v) / pre.v;
+      var rp = var_(pre.v, max);
       r.base = "relativo"; r.rel = rp;
       if (rp > REL) {
         r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
@@ -1035,7 +1038,7 @@ html.js.motore-ko #nomotore{display:block}
       r.perche = "senza il valore pre-procedura: dal primo prelievo dopo (" + fmt(v0) + " ng/L, ≤ URL) fino a " + fmt(dopo) + " ng/L, sopra il 99° percentile";
       return r;
     }
-    var rr = (dopo - v0) / v0; r.base = "relativo"; r.rel = rr;
+    var rr = var_(v0, dopo); r.base = "relativo"; r.rel = rr;
     if (rr > REL) {
       r.tn = "acuto"; r.k = 2; r.testo = "danno miocardico acuto dopo la procedura"; r.dinamica = "procedura";
       r.perche = "senza il valore pre-procedura: dal primo prelievo dopo (" + fmt(v0) + " ng/L) fino a " + fmt(dopo) + " ng/L, " + pc(rr) + " (oltre il 20%)";
@@ -1661,7 +1664,7 @@ html.js.motore-ko #nomotore{display:block}
     if (s.ctx === "sec") an += nota("info", "Gli algoritmi rapidi sono per il <strong>sospetto di SCA</strong>, non per una popolazione non selezionata — non nel paziente con ictus o sepsi. Qui la curva si legge con la definizione, al passo 6.", "S p. 12, avvertenza ii");
     if (s.ctx === "proc") an += nota("info", "Dopo una procedura l'algoritmo non si applica: la curva si legge con la definizione e con la cinetica della procedura, al passo 6.", "Fig. 6 UDMI5, p. 17");
     for (i = 0; i < alg.note.length; i++) {
-      if (alg.note[i] === "discesa") an += nota("", "<strong>La troponina scende di quanto basterebbe per un rule-in.</strong> La Fig. 6 parla di aumento; una discesa di pari entità è comunque un «fall», che nella definizione conta come la salita. Non consente il rule-out: è osservazione, da giudicare con la clinica.", "Fig. 6, p. 3741 · UDMI5 p. 8");
+      if (alg.note[i] === "discesa") an += nota("", "<strong>La troponina scende di quanto basterebbe per un rule-in.</strong> Il riquadro della Fig. 6 disegna un aumento, ma la legenda e il testo parlano di variazione a 1 h o 2 h; una discesa di pari entità è comunque un «fall», che nella definizione conta come la salita. Non consente il rule-out: è osservazione, da giudicare con la clinica.", "Fig. 6, p. 3741 · p. 3740 · UDMI5 p. 8");
       else an += nota("info", alg.note[i], "S p. 12");
     }
     if (alg.p === 0 && alg.ritirato) {
